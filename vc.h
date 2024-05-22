@@ -78,3 +78,4 @@ int vc_gray_edge_sobel(IVC *src, IVC *dst, float th);
 int vc_gray_lowpass_mean_filter(IVC *src, IVC *dst, int kernelsize);
 int compare(const void *a, const void *b);
 int vc_gray_lowpass_median_filter(IVC *src, IVC *dst, int kernelsize);
+int vc_bgr_to_rgb(IVC *src, IVC *dst);

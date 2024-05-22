@@ -2091,3 +2091,27 @@ int vc_gray_lowpass_gaussian_filter(IVC *src, IVC *dst)
 	return 1;	  // Sucesso
 }
 */
+
+int vc_bgr_to_rgb(IVC *src, IVC *dst)
+{
+	unsigned char *datasrc = (unsigned char*) src->data;
+    int channels_src = src->channels;
+    int bytesperline_src = src->bytesperline;
+    unsigned char *datadst = (unsigned  char*) dst->data;
+    int width = src->width;
+    int height = src->height;
+    long int pos;
+	// Copiar a data da src para a dst
+	memcpy(datadst, datasrc, width * height * 3 );
+
+	for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            pos = y * bytesperline_src + x * channels_src;
+            unsigned char blue = datadst[pos];
+            datadst[pos] = datadst[pos + 2]; // Azul recebe o valor de Vermelho
+            datadst[pos + 2] = blue; // Vermelho recebe o valor de Azul
+        }
+    }
+
+	return 0;
+}
