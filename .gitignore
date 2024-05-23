@@ -115,3 +115,5 @@ testebgr.pgm
 testergb.pgm
 .vscode/settings.json
 build/.cmake/api/v1/reply/index-2024-05-22T20-25-33-0585.json
+*.json
+*.pgm
