@@ -85,10 +85,22 @@ int main(void) {
 	IVC *image_2 = vc_image_new(video.width, video.height, 3, 255);
 	IVC *image_3 = vc_image_new(video.width, video.height, 1, 255);
 	IVC *image_4 = vc_image_new(video.width, video.height, 1, 255);
-	IVC *image_vermelho = vc_image_new(video.width, video.height, 1, 255);
-	IVC *image_azul = vc_image_new(video.width, video.height, 1, 255);
+
+	ImageColors *img_colors = (ImageColors *)malloc(sizeof(ImageColors));
+
+	img_colors->preto = vc_image_new(video.width, video.height, 1, 255);
+    img_colors->castanho = vc_image_new(video.width, video.height, 1, 255);
+    img_colors->vermelho = vc_image_new(video.width, video.height, 1, 255);
+    img_colors->laranja = vc_image_new(video.width, video.height, 1, 255);
+    img_colors->amarelo = vc_image_new(video.width, video.height, 1, 255);
+    img_colors->verde = vc_image_new(video.width, video.height, 1, 255);
+    img_colors->azul = vc_image_new(video.width, video.height, 1, 255);
+    img_colors->roxo = vc_image_new(video.width, video.height, 1, 255);
+    img_colors->cinza = vc_image_new(video.width, video.height, 1, 255);
+    img_colors->branco = vc_image_new(video.width, video.height, 1, 255);
+
 	IVC *image_6 = vc_image_new(video.width, video.height, 1, 255);
-	IVC *image_verde = vc_image_new(video.width, video.height, 1, 255);
+	
 
 	cv::Mat frame;
 	while (key != 'q') {
@@ -107,7 +119,7 @@ int main(void) {
         vc_bgr_to_rgb(image,image_2);
 
         /*Segmentar o corpo*/
-		vc_hsv_resistances_segmentation(image_2,image_3);
+		vc_hsv_resistances_segmentation(image_2,image_3,img_colors);
 
         vc_binary_close(image_3,image_3,7,5);
 
@@ -178,9 +190,20 @@ int main(void) {
     vc_image_free(image);
 	vc_image_free(image_2);
 	vc_image_free(image_3);
-    vc_image_free(image_vermelho);
-	vc_image_free(image_azul);
-	vc_image_free(image_verde);
+    
+	if (img_colors != NULL) {
+        if (img_colors->preto) vc_image_free(img_colors->preto);
+        if (img_colors->castanho) vc_image_free(img_colors->castanho);
+        if (img_colors->vermelho) vc_image_free(img_colors->vermelho);
+        if (img_colors->laranja) vc_image_free(img_colors->laranja);
+        if (img_colors->amarelo) vc_image_free(img_colors->amarelo);
+        if (img_colors->verde) vc_image_free(img_colors->verde);
+        if (img_colors->azul) vc_image_free(img_colors->azul);
+        if (img_colors->roxo) vc_image_free(img_colors->roxo);
+        if (img_colors->cinza) vc_image_free(img_colors->cinza);
+        if (img_colors->branco) vc_image_free(img_colors->branco);
+        free(img_colors);
+    }
 	// +++++++++++++++++++++++++
 
 	/* Para o timer e exibe o tempo decorrido */
