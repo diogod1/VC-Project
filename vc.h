@@ -37,6 +37,14 @@ typedef struct {
 	int label;					// Etiqueta
 } OVC;
 
+typedef struct {
+    int minHue;
+    int maxHue;
+    int minSaturation;
+    int maxSaturation;
+    int minValue;
+    int maxValue;
+} ColorRange;
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //                    PROT�TIPOS DE FUN��ES
@@ -57,6 +65,7 @@ int vc_rgb_get_blue_gray(IVC *srcdst);
 int vc_rgb_to_gray(IVC *src, IVC *dst);
 int vc_rgb_to_hsv(IVC *src, IVC *dst);
 int vc_hsv_segmentation(IVC *src, IVC *dst, int hmin, int hmax, int smin, int smax, int vmin, int vmax);
+int vc_hsv_resistances_segmentation(IVC *src, IVC *dst);
 int vc_scale_gray_to_color_palette(IVC *src, IVC *dst);
 int vc_gray_to_binary(IVC *src, IVC *dst, int threshold);
 int vc_gray_to_binary_global_mean(IVC *src, IVC *dst);

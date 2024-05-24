@@ -2115,3 +2115,132 @@ int vc_bgr_to_rgb(IVC *src, IVC *dst)
 
 	return 0;
 }
+
+int vc_hsv_resistances_segmentation(IVC *src, IVC *dst)
+{
+	ColorRange colors[11] = {
+        {25, 55, 35, 64, 45, 90},     // Corpo resisitencia
+        {340, 15, 35, 64, 45, 90},     // Vermelho
+        {155, 210, 5, 55, 14, 55},    // Azul
+        {65, 150, 30, 100, 30, 100},  // Verde
+        // {45, 75, 60, 100, 50, 100},   // Amarelo
+        // {75, 165, 30, 100, 30, 100},  // Verde
+        // {165, 255, 15, 100, 35, 100}, // Azul
+        // {220, 320, 30, 100, 30, 100}, // Roxo
+        // {0, 360, 0, 10, 20, 80},      // Cinza
+        // {0, 360, 0, 0, 100, 100}      // Branco
+    };
+
+	unsigned char *datasrc = (unsigned char *)src->data;
+	int bytesperline_src = src->width * src->channels;
+	int channels_src = src->channels;
+	unsigned char *datadst = (unsigned char *)dst->data;
+	int bytesperline_dst = dst->width * dst->channels;
+	int channels_dst = dst->channels;
+	int width = src->width;
+	int height = src->height;
+	int x, y;
+	float max, min, hue, sat, valor, delta;
+	long int pos_src, pos_dst;
+	float rf, gf, bf;
+
+	// verificalão de errors
+	if ((src->width <= 0) || (src->height <= 0) || (src->data == NULL))
+		return 0;
+	if ((src->width != dst->width) || (src->height != dst->height))
+		return 0;
+	if ((src->channels != 3) || (dst->channels != 1))
+		return 0;
+
+	// meter em hsv
+	for (y = 0; y < height; y++)
+	{
+		for (x = 0; x < width; x++)
+		{
+			pos_src = y * bytesperline_src + x * channels_src;
+			pos_dst = y * bytesperline_dst + x * channels_dst;
+
+			rf = (float)datasrc[pos_src];
+			gf = (float)datasrc[pos_src + 1];
+			bf = (float)datasrc[pos_src + 2];
+
+			max = (rf > gf ? (rf > bf ? rf : bf) : (gf > bf ? gf : bf));
+			min = (rf < gf ? (rf < bf ? rf : bf) : (gf < bf ? gf : bf));
+			delta = max - min;
+
+			// calcular value
+			valor = max;
+
+			// calcular saturação
+			if (max == 0 || max == min)
+			{
+				sat = 0;
+				hue = 0;
+			}
+			else
+			{
+				sat = delta * 100.0f / valor;
+				// calcular hue
+				//  Quando o vermelho é o maior, Hue será um ângulo entre 300 e 360 ou entre 0 e 60
+				if (rf == max && gf >= bf)
+				{
+					hue = 60.0f * (gf - bf) / delta;
+				}
+				else if (rf == max && bf > gf)
+				{
+					hue = 360 + 60.0f * (gf - bf) / delta;
+				}
+				else if (gf == max)
+				{
+					hue = 120 + 60.0f * (bf - rf) / delta;
+				}
+				else if (max == bf)
+				{
+					hue = 240 + 60.0f * (rf - gf) / delta;
+				}
+			}
+
+			
+			if (hue <= colors[0].maxHue && hue >= colors[0].minHue && sat <= colors[0].maxSaturation && sat >= colors[0].minSaturation && valor <= colors[0].maxValue / 100.0f * 255 && valor >= colors[0].minValue / 100.0f * 255)	
+				datadst[pos_dst] = 255; 	// Corpo resistência
+			else if(colors[1].minHue > colors[1].maxHue)
+				if((hue >= 0 && hue <= colors[1].maxHue) || (hue <= 360 && hue >= colors[1].minHue) && sat <= colors[1].maxSaturation && sat >= colors[1].minSaturation && valor <= colors[1].maxValue / 100.0f * 255 && valor >= colors[1].minValue / 100.0f * 255)	
+					datadst[pos_dst] = 255; // Vermelho - minHue > maxHue
+			else if(colors[1].minHue < colors[1].maxHue && hue <= colors[1].maxHue && hue >= colors[1].minHue && sat <= colors[1].maxSaturation && sat >= colors[1].minSaturation && valor <= colors[1].maxValue / 100.0f * 255 && valor >= colors[1].minValue / 100.0f * 255)
+				datadst[pos_dst] = 255; 	// Vermelho - minHue < maxHue
+			else if(hue <= colors[2].maxHue && hue >= colors[2].minHue && sat <= colors[2].maxSaturation && sat >= colors[2].minSaturation && valor <= colors[2].maxValue / 100.0f * 255 && valor >= colors[2].minValue / 100.0f * 255)	
+				datadst[pos_dst] = 255; 	// Azul
+			else if(hue <= colors[3].maxHue && hue >= colors[3].minHue && sat <= colors[3].maxSaturation && sat >= colors[3].minSaturation && valor <= colors[3].maxValue / 100.0f * 255 && valor >= colors[3].minValue / 100.0f * 255)	
+				datadst[pos_dst] = 255; 	// Verde
+			else
+				datadst[pos_dst] = 0;
+
+
+
+			/* {25, 45, 35, 64, 45, 90},     // Corpo resisitencia
+			{25, 45, 35, 64, 45, 90},     // Vermelho
+			{130, 205, 5, 55, 30, 45},    // Azul
+			{75, 165, 30, 100, 30, 100},  // Verde */
+
+			//minHue,colors[0].maxHue,colors[0].minSaturation,colors[0].maxSaturation,45,90);
+
+			/* // se o hmin for maior que o hmax  entao hmin ate 360 e de 0 ate hmax
+			if (hmin > hmax)
+			{
+				if ((hue >= 0 && hue <= hmax || hue <= 360 && hue >= hmin) && sat <= smax && sat >= smin && valor <= vmax / 100.0f * 255 && valor >= vmin / 100.0f * 255)
+					datadst[pos_dst] = 255;
+				else
+					datadst[pos_dst] = 0;
+			}
+			else
+			{
+				if (hue <= hmax && hue >= hmin && sat <= smax && sat >= smin && valor <= vmax / 100.0f * 255 && valor >= vmin / 100.0f * 255)
+					datadst[pos_dst] = 255;
+				else
+					datadst[pos_dst] = 0;
+			} */
+		}
+	}
+
+	return 1;
+}
