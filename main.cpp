@@ -44,7 +44,7 @@ void vc_timer(void) {
 
 int main(void) {
 	// V�deo
-	char videofile[100] = "C:/Users/Diogo Duarte/Desktop/PL/VC-Project/video_resistors.mp4";
+	char videofile[100] = "../../video_resistors.mp4";
 	cv::VideoCapture capture;
 	struct
 	{
@@ -66,10 +66,10 @@ int main(void) {
 	/* Em alternativa, abrir captura de v�deo pela Webcam #0 */
 	//capture.open(0, cv::CAP_DSHOW); // Pode-se utilizar apenas capture.open(0);
 
-	/* Verifica se foi poss�vel abrir o ficheiro de v�deo */
+	/* Verifica se foi possível abrir o ficheiro de vídeo */
 	if (!capture.isOpened())
 	{
-		std::cerr << "Erro ao abrir o ficheiro de v�deo!\n";
+		std::cerr << "Erro ao abrir o ficheiro de vídeo!\n";
 		return 1;
 	}
 
@@ -125,20 +125,6 @@ int main(void) {
 
 		/* N�mero da frame a processar */
 		video.nframe = (int)capture.get(cv::CAP_PROP_POS_FRAMES);
-
-		/* Exemplo de inser��o texto na frame */
-		str = std::string("RESOLUCAO: ").append(std::to_string(video.width)).append("x").append(std::to_string(video.height));
-		cv::putText(frame, str, cv::Point(20, 25), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 2);
-		cv::putText(frame, str, cv::Point(20, 25), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 1);
-		str = std::string("TOTAL DE FRAMES: ").append(std::to_string(video.ntotalframes));
-		cv::putText(frame, str, cv::Point(20, 50), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 2);
-		cv::putText(frame, str, cv::Point(20, 50), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 1);
-		str = std::string("FRAME RATE: ").append(std::to_string(video.fps));
-		cv::putText(frame, str, cv::Point(20, 75), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 2);
-		cv::putText(frame, str, cv::Point(20, 75), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 1);
-		str = std::string("N. DA FRAME: ").append(std::to_string(video.nframe));
-		cv::putText(frame, str, cv::Point(20, 100), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 2);
-		cv::putText(frame, str, cv::Point(20, 100), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 1);
 
 		// Copia dados de imagem da estrutura cv::Mat para uma estrutura IVC
 		memcpy(image->data, frame.data, video.width * video.height * 3);

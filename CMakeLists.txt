@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.0)
 project(vc_project)
 
 set(OpenCV_DIR C:/opencv/build/x64/vc16/lib)
