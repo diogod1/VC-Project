@@ -59,6 +59,19 @@ typedef struct {
     IVC *branco;
 } ImageColors;
 
+typedef struct {
+    int lista_preto;
+    int lista_castanho;
+    int lista_vermelho;
+    int lista_laranja;
+    int lista_amarelo;
+    int lista_verde;
+    int lista_azul;
+    int lista_roxo;
+    int lista_cinza;
+    int lista_branco;
+} ResistenceColorList;
+
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //                    PROT�TIPOS DE FUN��ES
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -101,3 +114,7 @@ int vc_gray_lowpass_mean_filter(IVC *src, IVC *dst, int kernelsize);
 int compare(const void *a, const void *b);
 int vc_gray_lowpass_median_filter(IVC *src, IVC *dst, int kernelsize);
 int vc_bgr_to_rgb(IVC *src, IVC *dst);
+int vc_check_resistence_color(int width, int height, ImageColors *img_colors, ResistenceColorList ResColors);
+void vc_initialize_colors(int width, int height, ImageColors *img_colors, int channels, int levels);
+void vc_memcpy_images_color(ImageColors *img_colors_src, ImageColors *img_colors_dst, int size);
+void vc_free_images(ImageColors *img_colors);

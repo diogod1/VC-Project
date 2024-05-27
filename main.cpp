@@ -88,20 +88,10 @@ int main(void) {
 
 	ImageColors *img_colors = (ImageColors *)malloc(sizeof(ImageColors));
 
-	img_colors->preto = vc_image_new(video.width, video.height, 1, 255);
-    img_colors->castanho = vc_image_new(video.width, video.height, 1, 255);
-    img_colors->vermelho = vc_image_new(video.width, video.height, 1, 255);
-    img_colors->laranja = vc_image_new(video.width, video.height, 1, 255);
-    img_colors->amarelo = vc_image_new(video.width, video.height, 1, 255);
-    img_colors->verde = vc_image_new(video.width, video.height, 1, 255);
-    img_colors->azul = vc_image_new(video.width, video.height, 1, 255);
-    img_colors->roxo = vc_image_new(video.width, video.height, 1, 255);
-    img_colors->cinza = vc_image_new(video.width, video.height, 1, 255);
-    img_colors->branco = vc_image_new(video.width, video.height, 1, 255);
+	vc_initialize_colors(video.width,video.height,img_colors,1,255);
 
 	IVC *image_6 = vc_image_new(video.width, video.height, 1, 255);
 	
-
 	cv::Mat frame;
 	while (key != 'q') {
 		/* Leitura de uma frame do v�deo */
@@ -121,33 +111,14 @@ int main(void) {
         /*Segmentar o corpo*/
 		vc_hsv_resistances_segmentation(image_2,image_3,img_colors);
 
-        vc_binary_close(image_3,image_3,7,5);
+        vc_binary_close(image_3,image_3,5,5);
 
 		int nlabel;
 		OVC *blobs = vc_binary_blob_labelling(image_3, image_6, &nlabel);
 		if(blobs != NULL)
 			vc_binary_blob_info(image_6, blobs, nlabel);
-
-		/*Identifica cada blob*/
-		// for (int i = 0; i < nlabel; i++){
-		// 	/*Restringe pela area*/
-		// 	if(blobs[i].area < 2000)
-		// 		continue;
-
-		// 	//Corta imagem pelo tamanho do blob
-		// 	IVC *image_temp = vc_image_new(blobs[i].width, blobs[i].height, 1, 255);
-		// 	/*Verfica cores*/
-		// 	for (int y = blobs[i].y; y < blobs[i].y + blobs[i].height; y++) {
-		// 		for (int x = blobs[i].x; x < blobs[i].x - blobs[i].width; x++) {
-		// 			long int pos = y * image_3->bytesperline + x * image_3->channels;
-
-
-			
-		// 		}
-        // 	}
-		//     free(image_temp);
-		// }
 		
+		/*
 		// lógica para eliminar blobs pequenos (falhas) - nº de blobs errado no display atm
         for (int i = 0; i < nlabel; i++){
 			if(blobs[i].area < 2000) {
@@ -156,22 +127,70 @@ int main(void) {
 						image_3->data[y * image_3->width + x] = 0;
 				continue;
 			}
-				
+		}
+		nlabel = 0;
+		*/
+		/*
+		OVC *blobs_v2 = vc_binary_blob_labelling(image_3, image_6, &nlabel);
+		if(blobs_v2 != NULL)
+			vc_binary_blob_info(image_6, blobs, nlabel);
+		*/
+		
+
+		ResistenceColorList ResColors = {0};
+		//Identifica cada blob
+		for (int i = 0; i < nlabel; i++){
+		 	//Restringe pela area
+		 	if(blobs[i].area < 2000){
+				continue;
+			}
+			/*Temp Color images*/
+			ImageColors *img_colors_temp = (ImageColors *)malloc(sizeof(ImageColors));
+			ImageColors *img_colors_new = (ImageColors *)malloc(sizeof(ImageColors));
+			vc_initialize_colors(blobs[i].width,blobs[i].height,img_colors_temp,1,255);
+			vc_initialize_colors(blobs[i].width,blobs[i].height,img_colors_new,1,255);
+			//Copia imagens
+			vc_memcpy_images_color(img_colors,img_colors_temp,blobs[i].width * blobs[i].height * 3);
+			//Corta imagem pelo tamanho do blob
+		 	IVC *image_blob = vc_image_new(blobs[i].width, blobs[i].height, 1, 255);
+			memcpy(image_blob,image_3,blobs[i].width * blobs[i].height * 3);
+
+			vc_check_resistence_color(blobs[i].width, blobs[i].height, img_colors, ResColors);
+			
+			/*
+		 	//Corta imagem pelo tamanho do blob
+		 	IVC *image_blob = vc_image_new(blobs[i].width, blobs[i].height, 1, 255);
+			memcpy(image_blob,image_3,blobs[i].width * blobs[i].height * 3);
+
+			//Verfica cores
+		 	for (int y = blobs[i].y; y < blobs[i].y + blobs[i].height; y++) {
+				for (int x = blobs[i].x; x < blobs[i].x - blobs[i].width; x++) {
+		 			long int pos = y * image_3->bytesperline + x * image_3->channels;		
+		 		}
+         	}
+		    
+			free(image_blob);*/
+			vc_free_images(img_colors);
+		}
+		
+		/* ver imagem preto e branco */
+		cv::Mat imageToShow = cv::Mat(img_colors->vermelho->height, img_colors->vermelho->width, CV_8UC3);
+			for (int y = 0; y < img_colors->vermelho->height; y++) {
+				for (int x = 0; x < img_colors->vermelho->width; x++) {
+					uchar value = img_colors->vermelho->data[y * img_colors->vermelho->width + x];
+					imageToShow.at<cv::Vec3b>(y, x) = cv::Vec3b(value, value, value); // Replicar valor para os três canais
+				}
+			}
+		memcpy(frame.data, imageToShow.data, video.width * video.height * 3);
+
+		for (int i = 0; i < nlabel; i++){
+			if(blobs[i].area < 500)
+				continue;
 			str = std::string("Area: ").append(std::to_string(blobs[i].area));
 			cv::putText(frame, str, cv::Point(blobs[i].x, blobs[i].y), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0), 2);
 			cv::putText(frame, str, cv::Point(blobs[i].x, blobs[i].y), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1);
 		}
-
-		/* ver imagem preto e branco */
-        cv::Mat imageToShow = cv::Mat(image_3->height, image_3->width, CV_8UC3);
-            for (int y = 0; y < image_3->height; y++) {
-                for (int x = 0; x < image_3->width; x++) {
-                    uchar value = image_3->data[y * image_3->width + x];
-                    imageToShow.at<cv::Vec3b>(y, x) = cv::Vec3b(value, value, value); // Replicar valor para os três canais
-                }
-            }
-        memcpy(frame.data, imageToShow.data, video.width * video.height * 3);
-
+		
 		str = std::string("BLOB'S DETETADOS: ").append(std::to_string(nlabel));
 		cv::putText(frame, str, cv::Point(20, 125), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 2);
 		cv::putText(frame, str, cv::Point(20, 125), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 1);
@@ -192,16 +211,7 @@ int main(void) {
 	vc_image_free(image_3);
     
 	if (img_colors != NULL) {
-        if (img_colors->preto) vc_image_free(img_colors->preto);
-        if (img_colors->castanho) vc_image_free(img_colors->castanho);
-        if (img_colors->vermelho) vc_image_free(img_colors->vermelho);
-        if (img_colors->laranja) vc_image_free(img_colors->laranja);
-        if (img_colors->amarelo) vc_image_free(img_colors->amarelo);
-        if (img_colors->verde) vc_image_free(img_colors->verde);
-        if (img_colors->azul) vc_image_free(img_colors->azul);
-        if (img_colors->roxo) vc_image_free(img_colors->roxo);
-        if (img_colors->cinza) vc_image_free(img_colors->cinza);
-        if (img_colors->branco) vc_image_free(img_colors->branco);
+        vc_free_images(img_colors);
         free(img_colors);
     }
 	// +++++++++++++++++++++++++
