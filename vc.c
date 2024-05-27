@@ -1232,8 +1232,8 @@ OVC *vc_binary_blob_labelling(IVC *src, IVC *dst, int *nlabels)
 	int x, y, a, b;
 	long int i, size;
 	long int posX, posA, posB, posC, posD;
-	int labeltable[256] = {0};
-	int labelarea[256] = {0};
+	int labeltable[1024] = {0};
+	int labelarea[1024] = {0};
 	int label = 1; // Etiqueta inicial.
 	int num, tmplabel;
 	OVC *blobs; // Apontador para array de blobs (objectos) que será retornado desta função.
@@ -2050,19 +2050,34 @@ int vc_bgr_to_rgb(IVC *src, IVC *dst)
 int vc_hsv_resistances_segmentation(IVC *src, IVC *dst, ImageColors *img_colors)
 {
 	ColorRange colors[11] = {
-		{25, 55, 35, 64, 45, 90},	  // Corpo resisitencia
-		{0, 360, 0, 0, 100, 100},	  // Preto
-		{0, 360, 0, 0, 100, 100},	  // Castanho
-		{340, 45, 35, 64, 45, 100},	  // Vermelho
-		{0, 360, 0, 0, 100, 100},	  // Laranja
-		{0, 360, 0, 0, 100, 100},	  // Amarelo
-		{65, 150, 30, 100, 30, 100},  // Verde
+		/*
+		{25, 55, 35, 64, 45, 90},	// Corpo resisitencia
+		{0, 360, 0, 0, 100, 100},	// Preto
+		{10, 50, 30, 100, 20, 100}, // Castanho
+		{340, 15, 35, 75, 55, 100}, // Vermelho
+		{0, 360, 0, 0, 100, 100},	// Laranja
+		{0, 360, 0, 0, 100, 100},	// Amarelo
+		//{65, 150, 30, 100, 30, 100},  // Verde
+		{75, 165, 30, 100, 30, 100},
 		{155, 210, 5, 55, 14, 55},	  // Azul
 		{220, 320, 30, 100, 30, 100}, // Roxo
 		{0, 360, 0, 10, 20, 80},	  // Cinza
 		{0, 360, 0, 0, 100, 100}	  // Branco
-
+		*/
+		{25, 55, 35, 64, 45, 90},     // Corpo resistência
+		{0, 360, 0, 0, 0, 10},        // Preto
+		{15, 45, 50, 100, 30, 70},    // Castanho
+		{340, 15, 35, 75, 55, 100},   // Vermelho
+		{15, 45, 50, 100, 60, 100},   // Laranja
+		{50, 65, 50, 100, 60, 100},   // Amarelo
+		{75, 165, 30, 100, 30, 100},  // Verde
+		{155, 210, 5, 55, 14, 55},    // Azul
+		{220, 320, 30, 100, 30, 100}, // Roxo
+		{0, 360, 0, 10, 20, 80},      // Cinza
+		{0, 360, 0, 0, 90, 100}       // Branco
 	};
+
+	
 
 	unsigned char *datasrc = (unsigned char *)src->data;
 	int bytesperline_src = src->width * src->channels;
@@ -2133,35 +2148,104 @@ int vc_hsv_resistances_segmentation(IVC *src, IVC *dst, ImageColors *img_colors)
 				}
 			}
 
-			if (hue <= colors[0].maxHue && hue >= colors[0].minHue && sat <= colors[0].maxSaturation && sat >= colors[0].minSaturation && valor <= colors[0].maxValue / 100.0f * 255 && valor >= colors[0].minValue / 100.0f * 255)
+			if (hue <= colors[0].maxHue && hue >= colors[0].minHue &&
+				sat <= colors[0].maxSaturation && sat >= colors[0].minSaturation &&
+				valor <= colors[0].maxValue / 100.0f * 255 && valor >= colors[0].minValue / 100.0f * 255)
+			{
 				datadst[pos_dst] = 255; // Corpo resistência
-
-			else if (colors[3].minHue > colors[3].maxHue && ((hue >= 0 && hue <= colors[3].maxHue) || (hue <= 360 && hue >= colors[3].minHue)) && sat <= colors[3].maxSaturation && sat >= colors[3].minSaturation && valor <= colors[3].maxValue / 100.0f * 255 && valor >= colors[3].minValue / 100.0f * 255)
+			}
+			else if (hue <= colors[1].maxHue && hue >= colors[1].minHue &&
+					 sat <= colors[1].maxSaturation && sat >= colors[1].minSaturation &&
+					 valor <= colors[1].maxValue / 100.0f * 255 && valor >= colors[1].minValue / 100.0f * 255)
+			{
+				datadst[pos_dst] = 255; // Preto
+				img_colors->preto->data[pos_dst] = 255;
+			}
+			else if (hue <= colors[2].maxHue && hue >= colors[2].minHue &&
+					 sat <= colors[2].maxSaturation && sat >= colors[2].minSaturation &&
+					 valor <= colors[2].maxValue / 100.0f * 255 && valor >= colors[2].minValue / 100.0f * 255)
+			{
+				datadst[pos_dst] = 255; // Castanho
+				img_colors->castanho->data[pos_dst] = 255;
+			}
+			else if (colors[3].minHue > colors[3].maxHue &&
+					 ((hue >= 0 && hue <= colors[3].maxHue) || (hue <= 360 && hue >= colors[3].minHue)) &&
+					 sat <= colors[3].maxSaturation && sat >= colors[3].minSaturation &&
+					 valor <= colors[3].maxValue / 100.0f * 255 && valor >= colors[3].minValue / 100.0f * 255)
 			{
 				datadst[pos_dst] = 255; // Vermelho - minHue > maxHue
 				img_colors->vermelho->data[pos_dst] = 255;
 			}
-			else if (colors[3].minHue < colors[3].maxHue && hue <= colors[3].maxHue && hue >= colors[3].minHue && sat <= colors[3].maxSaturation && sat >= colors[3].minSaturation && valor <= colors[3].maxValue / 100.0f * 255 && valor >= colors[3].minValue / 100.0f * 255)
+			else if (colors[3].minHue < colors[3].maxHue &&
+					 hue <= colors[3].maxHue && hue >= colors[3].minHue &&
+					 sat <= colors[3].maxSaturation && sat >= colors[3].minSaturation &&
+					 valor <= colors[3].maxValue / 100.0f * 255 && valor >= colors[3].minValue / 100.0f * 255)
 			{
 				datadst[pos_dst] = 255; // Vermelho - minHue < maxHue
 				img_colors->vermelho->data[pos_dst] = 255;
 			}
-			else if (hue <= colors[7].maxHue && hue >= colors[7].minHue && sat <= colors[7].maxSaturation && sat >= colors[7].minSaturation && valor <= colors[7].maxValue / 100.0f * 255 && valor >= colors[7].minValue / 100.0f * 255)
+			else if (hue <= colors[4].maxHue && hue >= colors[4].minHue &&
+					 sat <= colors[4].maxSaturation && sat >= colors[4].minSaturation &&
+					 valor <= colors[4].maxValue / 100.0f * 255 && valor >= colors[4].minValue / 100.0f * 255)
 			{
-				datadst[pos_dst] = 255; // Azul
-				img_colors->azul->data[pos_dst] = 255;
+				datadst[pos_dst] = 255; // Laranja
+				img_colors->laranja->data[pos_dst] = 255;
 			}
-			else if (hue <= colors[6].maxHue && hue >= colors[6].minHue && sat <= colors[6].maxSaturation && sat >= colors[6].minSaturation && valor <= colors[6].maxValue / 100.0f * 255 && valor >= colors[6].minValue / 100.0f * 255)
+			else if (hue <= colors[5].maxHue && hue >= colors[5].minHue &&
+					 sat <= colors[5].maxSaturation && sat >= colors[5].minSaturation &&
+					 valor <= colors[5].maxValue / 100.0f * 255 && valor >= colors[5].minValue / 100.0f * 255)
+			{
+				datadst[pos_dst] = 255; // Amarelo
+				img_colors->amarelo->data[pos_dst] = 255;
+			}
+			else if (hue <= colors[6].maxHue && hue >= colors[6].minHue &&
+					 sat <= colors[6].maxSaturation && sat >= colors[6].minSaturation &&
+					 valor <= colors[6].maxValue / 100.0f * 255 && valor >= colors[6].minValue / 100.0f * 255)
 			{
 				datadst[pos_dst] = 255; // Verde
 				img_colors->verde->data[pos_dst] = 255;
 			}
+			else if (hue <= colors[7].maxHue && hue >= colors[7].minHue &&
+					 sat <= colors[7].maxSaturation && sat >= colors[7].minSaturation &&
+					 valor <= colors[7].maxValue / 100.0f * 255 && valor >= colors[7].minValue / 100.0f * 255)
+			{
+				datadst[pos_dst] = 255; // Azul
+				img_colors->azul->data[pos_dst] = 255;
+			}
+			else if (hue <= colors[8].maxHue && hue >= colors[8].minHue &&
+					 sat <= colors[8].maxSaturation && sat >= colors[8].minSaturation &&
+					 valor <= colors[8].maxValue / 100.0f * 255 && valor >= colors[8].minValue / 100.0f * 255)
+			{
+				datadst[pos_dst] = 255; // Roxo
+				img_colors->roxo->data[pos_dst] = 255;
+			}
+			else if (hue <= colors[9].maxHue && hue >= colors[9].minHue &&
+					 sat <= colors[9].maxSaturation && sat >= colors[9].minSaturation &&
+					 valor <= colors[9].maxValue / 100.0f * 255 && valor >= colors[9].minValue / 100.0f * 255)
+			{
+				datadst[pos_dst] = 255; // Cinza
+				img_colors->cinza->data[pos_dst] = 255;
+			}
+			else if (hue <= colors[10].maxHue && hue >= colors[10].minHue &&
+					 sat <= colors[10].maxSaturation && sat >= colors[10].minSaturation &&
+					 valor <= colors[10].maxValue / 100.0f * 255 && valor >= colors[10].minValue / 100.0f * 255)
+			{
+				datadst[pos_dst] = 255; // Branco
+				img_colors->branco->data[pos_dst] = 255;
+			}
 			else
 			{
 				datadst[pos_dst] = 0;
-				img_colors->verde->data[pos_dst] = 0;
+				img_colors->preto->data[pos_dst] = 0;
+				img_colors->castanho->data[pos_dst] = 0;
 				img_colors->vermelho->data[pos_dst] = 0;
+				img_colors->laranja->data[pos_dst] = 0;
+				img_colors->amarelo->data[pos_dst] = 0;
+				img_colors->verde->data[pos_dst] = 0;
 				img_colors->azul->data[pos_dst] = 0;
+				img_colors->roxo->data[pos_dst] = 0;
+				img_colors->cinza->data[pos_dst] = 0;
+				img_colors->branco->data[pos_dst] = 0;
 			}
 		}
 	}
@@ -2169,7 +2253,7 @@ int vc_hsv_resistances_segmentation(IVC *src, IVC *dst, ImageColors *img_colors)
 	return 1;
 }
 
-int vc_check_resistence_color(int width, int height, ImageColors *img_colors, ResistenceColorList ResColors)
+int vc_check_resistence_color(int xpos, int ypos, int width, int height, ImageColors *img_colors, ResistenceColorList ResColors)
 {
 	int nlabel;
 	/*Fazer um for até atingir as 4 fitas*/
@@ -2187,11 +2271,11 @@ int vc_check_resistence_color(int width, int height, ImageColors *img_colors, Re
 		for (int i = 0; i < nlabel; i++)
 		{
 			// Desconsiderar pequenos blobs
-			if (blobs[i].area < 500)
+			if (blobs[i].area < 300)
 			{
 				continue;
 			}
-			else
+			else if (blobs[i].xc > xpos && blobs[i].yc > ypos)
 			{
 				ResColors.lista_vermelho += 1;
 			}
@@ -2214,11 +2298,11 @@ int vc_check_resistence_color(int width, int height, ImageColors *img_colors, Re
 		for (int i = 0; i < nlabel; i++)
 		{
 			// Desconsiderar pequenos blobs
-			if (blobs[i].area < 500)
+			if (blobs[i].area < 300)
 			{
 				continue;
 			}
-			else
+			else if (blobs[i].xc > xpos && blobs[i].yc > ypos)
 			{
 				ResColors.lista_azul += 1;
 			}
@@ -2241,11 +2325,11 @@ int vc_check_resistence_color(int width, int height, ImageColors *img_colors, Re
 		for (int i = 0; i < nlabel; i++)
 		{
 			// Desconsiderar pequenos blobs
-			if (blobs[i].area < 500)
+			if (blobs[i].area < 300)
 			{
 				continue;
 			}
-			else
+			else if (blobs[i].xc > xpos && blobs[i].yc > ypos)
 			{
 				ResColors.lista_verde += 1;
 			}
@@ -2255,8 +2339,14 @@ int vc_check_resistence_color(int width, int height, ImageColors *img_colors, Re
 		vc_image_free(image_blob);
 	}
 
-	printf("Lista vermelhas encontradas: %d\n", ResColors.lista_vermelho);
-	printf("Lista verdes encontradas: %d\n", ResColors.lista_verde);
+	if (ResColors.lista_vermelho == 1 && ResColors.lista_verde == 1 && ResColors.lista_azul == 1)
+	{
+		return 1120;
+	}
+	else if (ResColors.lista_vermelho == 2)
+	{
+		return 246;
+	}
 
 	return 0;
 }
@@ -2275,29 +2365,45 @@ void vc_initialize_colors(int width, int height, ImageColors *img_colors, int ch
 	img_colors->branco = vc_image_new(width, height, channels, levels);
 }
 
-void vc_free_images(ImageColors *img_colors){
-	if (img_colors->preto) vc_image_free(img_colors->preto);
-    if (img_colors->castanho) vc_image_free(img_colors->castanho);
-    if (img_colors->vermelho) vc_image_free(img_colors->vermelho);
-    if (img_colors->laranja) vc_image_free(img_colors->laranja);
-    if (img_colors->amarelo) vc_image_free(img_colors->amarelo);
-    if (img_colors->verde) vc_image_free(img_colors->verde);
-    if (img_colors->azul) vc_image_free(img_colors->azul);
-    if (img_colors->roxo) vc_image_free(img_colors->roxo);
-    if (img_colors->cinza) vc_image_free(img_colors->cinza);
-    if (img_colors->branco) vc_image_free(img_colors->branco);
+void vc_free_images(ImageColors *img_colors)
+{
+	if (img_colors->preto)
+		vc_image_free(img_colors->preto);
+	if (img_colors->castanho)
+		vc_image_free(img_colors->castanho);
+	if (img_colors->vermelho)
+		vc_image_free(img_colors->vermelho);
+	if (img_colors->laranja)
+		vc_image_free(img_colors->laranja);
+	if (img_colors->amarelo)
+		vc_image_free(img_colors->amarelo);
+	if (img_colors->verde)
+		vc_image_free(img_colors->verde);
+	if (img_colors->azul)
+		vc_image_free(img_colors->azul);
+	if (img_colors->roxo)
+		vc_image_free(img_colors->roxo);
+	if (img_colors->cinza)
+		vc_image_free(img_colors->cinza);
+	if (img_colors->branco)
+		vc_image_free(img_colors->branco);
 }
 
-void vc_memcpy_images_color(ImageColors *img_colors_src, ImageColors *img_colors_dst, int size)
+void vc_memcpy_images_color(ImageColors *img_colors_src, ImageColors *img_colors_dst, int width, int height, int xpos, int ypos)
 {
-	memcpy(img_colors_dst->amarelo, img_colors_src->amarelo, size);
-	memcpy(img_colors_dst->azul, img_colors_src->azul, size);
-	memcpy(img_colors_dst->branco, img_colors_src->branco, size);
-	memcpy(img_colors_dst->preto, img_colors_src->preto, size);
-	memcpy(img_colors_dst->castanho, img_colors_src->castanho, size);
-	memcpy(img_colors_dst->cinza, img_colors_src->cinza, size);
-	memcpy(img_colors_dst->roxo, img_colors_src->roxo, size);
-	memcpy(img_colors_dst->vermelho, img_colors_src->vermelho, size);
-	memcpy(img_colors_dst->laranja, img_colors_src->laranja, size);
-	memcpy(img_colors_dst->verde, img_colors_src->verde, size);
+	// int pos;
+	// for (int y = height; y < height + ypos; y++)
+	// {
+	// 	for (int x = width; x < width + xpos; x++)
+	// 	{
+	// 		pos = y * img_colors_src->amarelo->bytesperline + x * img_colors_src->amarelo->channels;
+	// 		img_colors_dst->amarelo->data[pos] = img_colors_src->amarelo->data[pos];
+	// 		img_colors_dst->vermelho->data[pos] = img_colors_src->vermelho->data[pos];
+	// 		img_colors_dst->azul->data[pos] = img_colors_src->azul->data[pos];
+	// 		img_colors_dst->verde->data[pos] = img_colors_src->verde->data[pos];
+	// 		img_colors_dst->amarelo->data[pos] = img_colors_src->amarelo->data[pos];
+	// 		img_colors_dst->amarelo->data[pos] = img_colors_src->amarelo->data[pos];
+	// 		img_colors_dst->amarelo->data[pos] = img_colors_src->amarelo->data[pos];
+	// 	}
+	// }
 }

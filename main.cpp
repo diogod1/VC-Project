@@ -74,6 +74,7 @@ int main(void) {
 
 	/* Cria uma janela para exibir o v�deo */
 	cv::namedWindow("VC - VIDEO", cv::WINDOW_AUTOSIZE);
+	cv::namedWindow("VC - MASK", cv::WINDOW_AUTOSIZE);
 
 	/* Inicia o timer */
 	vc_timer();
@@ -141,22 +142,12 @@ int main(void) {
 		//Identifica cada blob
 		for (int i = 0; i < nlabel; i++){
 		 	//Restringe pela area
-		 	if(blobs[i].area < 2000){
+		 	if(blobs[i].area < 2000 && blobs[i].area > 13000){
+				//logica
 				continue;
 			}
-			/*Temp Color images*/
-			ImageColors *img_colors_temp = (ImageColors *)malloc(sizeof(ImageColors));
-			ImageColors *img_colors_new = (ImageColors *)malloc(sizeof(ImageColors));
-			vc_initialize_colors(blobs[i].width,blobs[i].height,img_colors_temp,1,255);
-			vc_initialize_colors(blobs[i].width,blobs[i].height,img_colors_new,1,255);
-			//Copia imagens
-			vc_memcpy_images_color(img_colors,img_colors_temp,blobs[i].width * blobs[i].height * 3);
-			//Corta imagem pelo tamanho do blob
-		 	IVC *image_blob = vc_image_new(blobs[i].width, blobs[i].height, 1, 255);
-			memcpy(image_blob,image_3,blobs[i].width * blobs[i].height * 3);
-
-			vc_check_resistence_color(blobs[i].width, blobs[i].height, img_colors, ResColors);
-			
+			ResColors = {0};
+			blobs[i].potencia= vc_check_resistence_color(blobs[i].x, blobs[i].y ,blobs[i].width, blobs[i].height, img_colors, ResColors);
 			/*
 		 	//Corta imagem pelo tamanho do blob
 		 	IVC *image_blob = vc_image_new(blobs[i].width, blobs[i].height, 1, 255);
@@ -170,23 +161,23 @@ int main(void) {
          	}
 		    
 			free(image_blob);*/
-			vc_free_images(img_colors);
+			//vc_free_images(img_colors);
 		}
 		
 		/* ver imagem preto e branco */
-		cv::Mat imageToShow = cv::Mat(img_colors->vermelho->height, img_colors->vermelho->width, CV_8UC3);
-			for (int y = 0; y < img_colors->vermelho->height; y++) {
-				for (int x = 0; x < img_colors->vermelho->width; x++) {
-					uchar value = img_colors->vermelho->data[y * img_colors->vermelho->width + x];
+		cv::Mat imageToShow = cv::Mat(image_3->height, image_3->width, CV_8UC3);
+			for (int y = 0; y < image_3->height; y++) {
+				for (int x = 0; x < image_3->width; x++) {
+					uchar value = image_3->data[y * image_3->width + x];
 					imageToShow.at<cv::Vec3b>(y, x) = cv::Vec3b(value, value, value); // Replicar valor para os três canais
 				}
 			}
 		memcpy(frame.data, imageToShow.data, video.width * video.height * 3);
 
 		for (int i = 0; i < nlabel; i++){
-			if(blobs[i].area < 500)
+			if(blobs[i].area < 2000)
 				continue;
-			str = std::string("Area: ").append(std::to_string(blobs[i].area));
+			str = std::string("VALOR: ").append(std::to_string(blobs[i].potencia));
 			cv::putText(frame, str, cv::Point(blobs[i].x, blobs[i].y), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0), 2);
 			cv::putText(frame, str, cv::Point(blobs[i].x, blobs[i].y), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1);
 		}
@@ -201,6 +192,8 @@ int main(void) {
 
 		/* Exibe a frame */
 		cv::imshow("VC - VIDEO", frame);
+		memcpy(frame.data, image->data, video.width * video.height * 3);
+		cv::imshow("VC - MASK", frame);
 
 		/* Sai da aplica��o, se o utilizador premir a tecla 'q' */
 		key = cv::waitKey(1);
@@ -221,6 +214,7 @@ int main(void) {
 
 	/* Fecha a janela */
 	cv::destroyWindow("VC - VIDEO");
+	cv::destroyWindow("VC - MASK");
 
 	/* Fecha o ficheiro de v�deo */
 	capture.release();
