@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
+#include <limits.h>
 #include <malloc.h>
 #include <math.h>
 #include "vc.h"
@@ -2065,19 +2066,17 @@ int vc_hsv_resistances_segmentation(IVC *src, IVC *dst, ImageColors *img_colors)
 		{0, 360, 0, 0, 100, 100}	  // Branco
 		*/
 		{25, 55, 35, 64, 45, 90},     // Corpo resistência
-		{0, 360, 0, 0, 0, 10},        // Preto
-		{15, 45, 50, 100, 30, 70},    // Castanho
+		{0, 360, 0, 35, 0, 35},       // Preto
+		{2, 45, 30, 100, 30, 70},     // Castanho
 		{340, 15, 35, 75, 55, 100},   // Vermelho
 		{15, 45, 50, 100, 60, 100},   // Laranja
-		{50, 65, 50, 100, 60, 100},   // Amarelo
+		{20, 35, 50, 100, 50, 100},   // Amarelo
 		{75, 165, 30, 100, 30, 100},  // Verde
-		{155, 210, 5, 55, 14, 55},    // Azul
+		{155, 200, 5, 55, 14, 55},    // Azul
 		{220, 320, 30, 100, 30, 100}, // Roxo
 		{0, 360, 0, 10, 20, 80},      // Cinza
 		{0, 360, 0, 0, 90, 100}       // Branco
 	};
-
-	
 
 	unsigned char *datasrc = (unsigned char *)src->data;
 	int bytesperline_src = src->width * src->channels;
@@ -2154,13 +2153,6 @@ int vc_hsv_resistances_segmentation(IVC *src, IVC *dst, ImageColors *img_colors)
 			{
 				datadst[pos_dst] = 255; // Corpo resistência
 			}
-			else if (hue <= colors[1].maxHue && hue >= colors[1].minHue &&
-					 sat <= colors[1].maxSaturation && sat >= colors[1].minSaturation &&
-					 valor <= colors[1].maxValue / 100.0f * 255 && valor >= colors[1].minValue / 100.0f * 255)
-			{
-				datadst[pos_dst] = 255; // Preto
-				img_colors->preto->data[pos_dst] = 255;
-			}
 			else if (hue <= colors[2].maxHue && hue >= colors[2].minHue &&
 					 sat <= colors[2].maxSaturation && sat >= colors[2].minSaturation &&
 					 valor <= colors[2].maxValue / 100.0f * 255 && valor >= colors[2].minValue / 100.0f * 255)
@@ -2212,14 +2204,14 @@ int vc_hsv_resistances_segmentation(IVC *src, IVC *dst, ImageColors *img_colors)
 				datadst[pos_dst] = 255; // Azul
 				img_colors->azul->data[pos_dst] = 255;
 			}
-			else if (hue <= colors[8].maxHue && hue >= colors[8].minHue &&
+			/* else if (hue <= colors[8].maxHue && hue >= colors[8].minHue &&
 					 sat <= colors[8].maxSaturation && sat >= colors[8].minSaturation &&
 					 valor <= colors[8].maxValue / 100.0f * 255 && valor >= colors[8].minValue / 100.0f * 255)
 			{
 				datadst[pos_dst] = 255; // Roxo
 				img_colors->roxo->data[pos_dst] = 255;
-			}
-			else if (hue <= colors[9].maxHue && hue >= colors[9].minHue &&
+			} */
+			/* else if (hue <= colors[9].maxHue && hue >= colors[9].minHue &&
 					 sat <= colors[9].maxSaturation && sat >= colors[9].minSaturation &&
 					 valor <= colors[9].maxValue / 100.0f * 255 && valor >= colors[9].minValue / 100.0f * 255)
 			{
@@ -2232,6 +2224,13 @@ int vc_hsv_resistances_segmentation(IVC *src, IVC *dst, ImageColors *img_colors)
 			{
 				datadst[pos_dst] = 255; // Branco
 				img_colors->branco->data[pos_dst] = 255;
+			} */
+			else if (hue <= colors[1].maxHue && hue >= colors[1].minHue &&
+					 sat <= colors[1].maxSaturation && sat >= colors[1].minSaturation &&
+					 valor <= colors[1].maxValue / 100.0f * 255 && valor >= colors[1].minValue / 100.0f * 255)
+			{
+				datadst[pos_dst] = 255; // Preto
+				img_colors->preto->data[pos_dst] = 255;
 			}
 			else
 			{
@@ -2243,9 +2242,9 @@ int vc_hsv_resistances_segmentation(IVC *src, IVC *dst, ImageColors *img_colors)
 				img_colors->amarelo->data[pos_dst] = 0;
 				img_colors->verde->data[pos_dst] = 0;
 				img_colors->azul->data[pos_dst] = 0;
-				img_colors->roxo->data[pos_dst] = 0;
-				img_colors->cinza->data[pos_dst] = 0;
-				img_colors->branco->data[pos_dst] = 0;
+				//img_colors->roxo->data[pos_dst] = 0;
+				//img_colors->cinza->data[pos_dst] = 0;
+				//img_colors->branco->data[pos_dst] = 0;
 			}
 		}
 	}
@@ -2389,7 +2388,7 @@ void vc_free_images(ImageColors *img_colors)
 		vc_image_free(img_colors->branco);
 }
 
-void vc_memcpy_images_color(ImageColors *img_colors_src, ImageColors *img_colors_dst, int width, int height, int xpos, int ypos)
+/* void vc_memcpy_images_color(ImageColors *img_colors_src, ImageColors *img_colors_dst, int width, int height, int xpos, int ypos)
 {
 	// int pos;
 	// for (int y = height; y < height + ypos; y++)
@@ -2406,4 +2405,82 @@ void vc_memcpy_images_color(ImageColors *img_colors_src, ImageColors *img_colors
 	// 		img_colors_dst->amarelo->data[pos] = img_colors_src->amarelo->data[pos];
 	// 	}
 	// }
+} */
+
+void calcularResistenciaTotal(CorContagemImagem *cores) {
+	IVC *image_temp;
+    int nlabel;
+    int *minXs = malloc(4 * sizeof(int));  // Array para armazenar o valor mínimo de x para cada cor
+
+    if (minXs == NULL) {
+        fprintf(stderr, "Falha na alocação de memória.\n");
+        return;
+    }
+
+    for (int i = 0; i < 4; i++) {
+		//std::string path = "../.." + std::to_string(i) + ".pgm";
+		//vc_write_image(const_cast<char*>(path.c_str()), cores[i].imagem->data);
+		vc_write_image("../../1.pgm", cores[i].imagem);
+        image_temp = vc_image_new(cores[i].imagem->width, cores[i].imagem->height, 1, 255);
+        OVC *blobs = vc_binary_blob_labelling(cores[i].imagem, image_temp, &nlabel);
+		if(blobs != NULL)
+			vc_binary_blob_info(image_temp, blobs, nlabel);
+        
+        minXs[i] = INT_MAX;  // Inicializa com o maior valor possível
+
+        if (blobs != NULL) {
+            for (int j = 0; j < nlabel; j++) {
+                if (blobs[j].x < minXs[i]) {
+                    minXs[i] = blobs[j].x;  // Encontra o menor x para cada cor
+                }
+            }
+            free(blobs);
+        }
+        free(image_temp->data);
+        free(image_temp);
+    }
+
+    // Ordenação simples utilizando Bubble Sort para fins didáticos
+    for (int i = 0; i < 4 - 1; i++) {
+        for (int j = 0; j < 4 - i - 1; j++) {
+            if (minXs[j] > minXs[j + 1]) {
+                // Troca minXs
+                int temp = minXs[j];
+                minXs[j] = minXs[j + 1];
+                minXs[j + 1] = temp;
+
+                // Troca cores
+                CorContagemImagem tempCor = cores[j];
+                cores[j] = cores[j + 1];
+                cores[j + 1] = tempCor;
+            }
+        }
+    }
+
+
+	/* IVC *image_temp = vc_image_new(cores[0].imagem->width, cores[0].imagem->height, 1, 255);
+
+	int nlabel;
+	OVC *blobs_0 = vc_binary_blob_labelling(cores[0].imagem->data, image_temp, &nlabel);
+	if(blobs_0 != NULL)
+		vc_binary_blob_info(image_temp, blobs_0, nlabel);
+
+	OVC *blobs_1 = vc_binary_blob_labelling(cores[1].imagem->data, image_temp, &nlabel);
+	if(blobs_1 != NULL)
+		vc_binary_blob_info(image_temp, blobs_1, nlabel);
+
+	OVC *blobs_2 = vc_binary_blob_labelling(cores[2].imagem->data, image_temp, &nlabel);
+	if(blobs_2 != NULL)
+		vc_binary_blob_info(image_temp, blobs_2, nlabel);
+	
+	OVC *blobs_3 = vc_binary_blob_labelling(cores[3].imagem->data, image_temp, &nlabel);
+	if(blobs_3 != NULL)
+		vc_binary_blob_info(image_temp, blobs_3, nlabel);
+ */
+}
+
+int compare_cor(const void *a, const void *b) {
+    CorContagemImagem *corA = (CorContagemImagem *)a;
+    CorContagemImagem *corB = (CorContagemImagem *)b;
+    return corB->contagem - corA->contagem;  // Ordenação decrescente
 }

@@ -73,6 +73,11 @@ typedef struct {
     int lista_branco;
 } ResistenceColorList;
 
+typedef struct {
+    int contagem;
+    IVC *imagem;
+} CorContagemImagem;
+
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //                    PROT�TIPOS DE FUN��ES
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -119,3 +124,5 @@ int vc_check_resistence_color(int xpos, int ypos, int width, int height, ImageCo
 void vc_initialize_colors(int width, int height, ImageColors *img_colors, int channels, int levels);
 void vc_memcpy_images_color(ImageColors *img_colors_src, ImageColors *img_colors_dst, int width, int height, int xpos, int ypos);
 void vc_free_images(ImageColors *img_colors);
+void calcularResistenciaTotal(CorContagemImagem *cores);
+int compare_cor(const void *a, const void *b);
