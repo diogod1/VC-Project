@@ -27,8 +27,8 @@ void vc_timer(void) {
 		double nseconds = time_span.count();
 
 		std::cout << "Tempo decorrido: " << nseconds << "segundos" << std::endl;
-		std::cout << "Pressione qualquer tecla para continuar...\n";
-		std::cin.get();
+		//std::cout << "Pressione qualquer tecla para continuar...\n";
+		//std::cin.get();
 	}
 }
 
@@ -73,8 +73,8 @@ int main(void) {
 	video.height = (int)capture.get(cv::CAP_PROP_FRAME_HEIGHT);
 
 	/* Cria uma janela para exibir o v�deo */
-	cv::namedWindow("VC - VIDEO", cv::WINDOW_AUTOSIZE);
-	cv::namedWindow("VC - MASK", cv::WINDOW_AUTOSIZE);
+	cv::namedWindow("VC - VIDEO", cv::WND_PROP_AUTOSIZE);
+	cv::namedWindow("VC - MASK", cv::WND_PROP_AUTOSIZE);
 
 	/* Inicia o timer */
 	vc_timer();
@@ -86,13 +86,12 @@ int main(void) {
 	IVC *image_2 = vc_image_new(video.width, video.height, 3, 255);
 	IVC *image_3 = vc_image_new(video.width, video.height, 1, 255);
 	IVC *image_4 = vc_image_new(video.width, video.height, 1, 255);
+	IVC *image_6 = vc_image_new(video.width, video.height, 1, 255);
 
 	ImageColors *img_colors = (ImageColors *)malloc(sizeof(ImageColors));
 
 	vc_initialize_colors(video.width,video.height,img_colors,1,255);
 
-	IVC *image_6 = vc_image_new(video.width, video.height, 1, 255);
-	
 	cv::Mat frame;
 	while (key != 'q') {
 		/* Leitura de uma frame do v�deo */
@@ -138,16 +137,69 @@ int main(void) {
 		*/
 		
 
-		ResistenceColorList ResColors = {0};
-		//Identifica cada blob
+		ResistenceColorList ResColors;
 		for (int i = 0; i < nlabel; i++){
-		 	//Restringe pela area
-		 	if(blobs[i].area < 2000 && blobs[i].area > 13000){
-				//logica
+			// filtrar apenas pelas resistências para o calculo dos ohms
+		 	if(blobs[i].area < 5000 || blobs[i].area > 10000){
 				continue;
 			}
+			if(video.nframe == 1) vc_write_image("../../1.pgm", img_colors->azul);
+
 			ResColors = {0};
-			blobs[i].potencia= vc_check_resistence_color(blobs[i].x, blobs[i].y ,blobs[i].width, blobs[i].height, img_colors, ResColors);
+			ResColors.lista_verde = 0;
+			ResColors.lista_azul = 0;
+			ResColors.lista_vermelho = 0;
+			ResColors.lista_amarelo = 0;
+			ResColors.lista_laranja = 0;
+			ResColors.lista_preto = 0;
+			ResColors.lista_castanho = 0;
+			for (int y = blobs[i].y; y < blobs[i].y + blobs[i].height; y++) {
+				for (int x = blobs[i].x; x < blobs[i].x + blobs[i].width; x++) {
+					int pos = y * image_3->width + x;
+					if(img_colors->verde->data[pos] = 255) ResColors.lista_verde++;
+					if(img_colors->azul->data[pos] = 255)  ResColors.lista_azul++;
+					if(img_colors->vermelho->data[pos] = 255) ResColors.lista_vermelho++;
+					if(img_colors->amarelo->data[pos] = 255) ResColors.lista_amarelo++;
+					if (img_colors->laranja->data[pos] == 255) ResColors.lista_laranja++;
+					if (img_colors->preto->data[pos] == 255) ResColors.lista_preto++;
+					if (img_colors->castanho->data[pos] == 255) ResColors.lista_castanho++;
+
+					//image_3->data[y * image_3->width + x] = 0;
+				}
+			}
+
+			CorContagemImagem cores[] = {
+				{ResColors.lista_preto, img_colors->preto},
+				{ResColors.lista_castanho, img_colors->castanho},
+				{ResColors.lista_vermelho, img_colors->vermelho},
+				{ResColors.lista_laranja, img_colors->laranja},
+				{ResColors.lista_amarelo, img_colors->amarelo},
+				{ResColors.lista_verde, img_colors->verde},
+				{ResColors.lista_azul, img_colors->azul}
+			};
+
+			qsort(cores, sizeof(cores) / sizeof(cores[0]), sizeof(CorContagemImagem), compare_cor);
+			
+			if(video.nframe == 1) calcularResistenciaTotal(cores);
+
+/* 			int top[4] = {0};
+    		int *p = (int *)&ResColors;
+			int size = sizeof(ResistenceColorList) / sizeof(int);
+
+			for (int i = 0; i < size; i++) {
+				for (int j = 0; j < 4; j++) {
+					if (p[i] > top[j]) {
+						for (int k = 3; k > j; k--) {
+							top[k] = top[k - 1];
+						}
+						top[j] = p[i];
+						break;
+					}
+				}
+			} */
+			
+			//blobs[i].potencia= vc_check_resistence_color(blobs[i].x, blobs[i].y ,blobs[i].width, blobs[i].height, img_colors, ResColors);
+
 			/*
 		 	//Corta imagem pelo tamanho do blob
 		 	IVC *image_blob = vc_image_new(blobs[i].width, blobs[i].height, 1, 255);
