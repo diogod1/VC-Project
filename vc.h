@@ -74,6 +74,8 @@ typedef struct {
 } ResistenceColorList;
 
 typedef struct {
+    unsigned int multiplicador;
+    char digito;
     int contagem;
     IVC *imagem;
 } CorContagemImagem;

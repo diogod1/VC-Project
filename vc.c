@@ -15,6 +15,7 @@
 #include <string.h>
 #include <limits.h>
 #include <malloc.h>
+#include <stdlib.h>
 #include <math.h>
 #include "vc.h"
 
@@ -2067,7 +2068,7 @@ int vc_hsv_resistances_segmentation(IVC *src, IVC *dst, ImageColors *img_colors)
 		*/
 		{25, 55, 35, 64, 45, 90},     // Corpo resistência
 		{0, 360, 0, 35, 0, 35},       // Preto
-		{2, 45, 30, 100, 30, 70},     // Castanho
+		{2, 45, 30, 100, 2, 35},     // Castanho
 		{340, 15, 35, 75, 55, 100},   // Vermelho
 		{15, 45, 50, 100, 60, 100},   // Laranja
 		{20, 35, 50, 100, 50, 100},   // Amarelo
