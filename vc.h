@@ -48,6 +48,7 @@ typedef struct {
 } ColorRange;
 
 typedef struct {
+    IVC *corpo;
     IVC *preto;
     IVC *castanho;
     IVC *vermelho;
@@ -78,7 +79,14 @@ typedef struct {
     char digito;
     int contagem;
     IVC *imagem;
+    int xmin;
 } CorContagemImagem;
+
+typedef struct {
+    int x;
+    int y;
+    int valor;
+} TextOutput;
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //                    PROT�TIPOS DE FUN��ES

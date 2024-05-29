@@ -107,7 +107,7 @@ int main(void) {
 		memcpy(image->data, frame.data, video.width * video.height * 3);
 		// Executa uma fun��o da nossa biblioteca vc
         vc_bgr_to_rgb(image,image_2);
-		if(video.nframe == 20) vc_write_image("../../frame20.pgm", image_2);
+		if(video.nframe == 9) vc_write_image("../../frame9.pgm", image_2);
 
         /*Segmentar o corpo*/
 		vc_hsv_resistances_segmentation(image_2,image_3,img_colors);
@@ -119,25 +119,8 @@ int main(void) {
 		if(blobs != NULL)
 			vc_binary_blob_info(image_6, blobs, nlabel);
 		
-		/*
-		// lógica para eliminar blobs pequenos (falhas) - nº de blobs errado no display atm
-        for (int i = 0; i < nlabel; i++){
-			if(blobs[i].area < 2000) {
-				for (int y = blobs[i].y; y < blobs[i].y + blobs[i].height; y++)
-			 		for (int x = blobs[i].x; x < blobs[i].x + blobs[i].width; x++)
-						image_3->data[y * image_3->width + x] = 0;
-				continue;
-			}
-		}
-		nlabel = 0;
-		*/
-		/*
-		OVC *blobs_v2 = vc_binary_blob_labelling(image_3, image_6, &nlabel);
-		if(blobs_v2 != NULL)
-			vc_binary_blob_info(image_6, blobs, nlabel);
-		*/
-		
-
+		TextOutput textOutput[50] = {0};
+		int w = 0;
 		ResistenceColorList ResColors;
 		for (int i = 0; i < nlabel; i++){
 			// filtrar apenas pelas resistências para o calculo dos ohms
@@ -149,26 +132,27 @@ int main(void) {
 			for (int y = blobs[i].y; y < blobs[i].y + blobs[i].height; y++) {
 				for (int x = blobs[i].x; x < blobs[i].x + blobs[i].width; x++) {
 					int pos = y * image_3->width + x;
-					if(img_colors->verde->data[pos] == 255) ResColors.lista_verde++;
-					if(img_colors->azul->data[pos] == 255)  ResColors.lista_azul++;
-					if(img_colors->vermelho->data[pos] == 255) ResColors.lista_vermelho++;
+					if(img_colors->corpo->data[pos] == 255) continue;
+					else if(img_colors->verde->data[pos] == 255) ResColors.lista_verde++;
+					else if(img_colors->azul->data[pos] == 255)  ResColors.lista_azul++;
+					else if(img_colors->vermelho->data[pos] == 255) ResColors.lista_vermelho++;
 					//if(img_colors->amarelo->data[pos] == 255) ResColors.lista_amarelo++;
-					if (img_colors->laranja->data[pos] == 255) ResColors.lista_laranja++;
-					if (img_colors->preto->data[pos] == 255) ResColors.lista_preto++;
-					if (img_colors->castanho->data[pos] == 255) ResColors.lista_castanho++;
+					else if (img_colors->laranja->data[pos] == 255) ResColors.lista_laranja++;
+					else if (img_colors->preto->data[pos] == 255) ResColors.lista_preto++;
+					else if (img_colors->castanho->data[pos] == 255) ResColors.lista_castanho++;
 
 					//image_3->data[y * image_3->width + x] = 0;
 				}
 			}
 
 			CorContagemImagem cores[] = {
-				{1,'0', ResColors.lista_preto, img_colors->preto},
-				{10,'1', ResColors.lista_castanho, img_colors->castanho},
-				{100,'2', ResColors.lista_vermelho, img_colors->vermelho},
-				//{ResColors.lista_laranja, img_colors->laranja},
-				//{ResColors.lista_amarelo, img_colors->amarelo},
-				{100000,'5', ResColors.lista_verde, img_colors->verde},
-				{1000000,'6', ResColors.lista_azul, img_colors->azul}
+				{1,'0', ResColors.lista_preto, img_colors->preto, INT_MAX},
+				//{10,'1', ResColors.lista_castanho, img_colors->castanho, INT_MAX},
+				{100,'2', ResColors.lista_vermelho, img_colors->vermelho, INT_MAX},
+				//{ResColors.lista_laranja, img_colors->laranja, INT_MAX},
+				//{ResColors.lista_amarelo, img_colors->amarelo, INT_MAX},
+				{100000,'5', ResColors.lista_verde, img_colors->verde, INT_MAX},
+				{1000000,'6', ResColors.lista_azul, img_colors->azul, INT_MAX}
 			};
 
 			CorContagemImagem temp;
@@ -192,88 +176,65 @@ int main(void) {
 			{
 				for (int x = 0; x < video.width; x++) 
 				{
-					
+					int pos = y * image_3->width + x;
+					if(cores[0].imagem->data[pos] == 255) {
+						if(x < cores[0].xmin) cores[0].xmin = x;
+					}
+					if(cores[1].imagem->data[pos] == 255) {
+						if(x < cores[1].xmin) cores[1].xmin = x;
+					}
+					if(cores[2].imagem->data[pos] == 255) {
+						if(x < cores[2].xmin ) cores[2].xmin = x;
+					}
+				}
+			}
+
+			for (int l = 0; l < 3; l++)
+			{
+				for (int k = l + 1; k < 3; k++)
+				{
+					if (cores[l].xmin > cores[k].xmin)
+					{
+						CorContagemImagem temp = cores[l];
+						cores[l] = cores[k];
+						cores[k] = temp;
+					}
 				}
 			}
 
 			char fullString[3];
-
 			fullString[0] = cores[0].digito;
 			fullString[1] = cores[1].digito;
-			fullString[3] = '\0';
+			fullString[2] = '\0';
 
+			if(video.nframe == 9) vc_write_image("../../castanho.pgm", img_colors->castanho);
 			int valor = atoi(fullString) * cores[2].multiplicador;
 
-			/* ver imagem preto e branco */
-			cv::Mat imageToShow = cv::Mat(image_3->height, image_3->width, CV_8UC3);
-				for (int y = 0; y < image_3->height; y++) {
-					for (int x = 0; x < image_3->width; x++) {
-						uchar value = image_3->data[y * image_3->width + x];
-						imageToShow.at<cv::Vec3b>(y, x) = cv::Vec3b(value, value, value); // Replicar valor para os três canais
-					}
-				}
-			memcpy(frame.data, imageToShow.data, video.width * video.height * 3);
-
-			str = std::string("VALOR: ").append(std::to_string(valor));
-			cv::putText(frame, str, cv::Point(blobs[i].x, blobs[i].y), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0), 2);
-			cv::putText(frame, str, cv::Point(blobs[i].x, blobs[i].y), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1);
-
-			/* if(video.nframe == 20) vc_write_image("../../laranja.pgm", img_colors->laranja);
-			if(video.nframe == 20) vc_write_image("../../vermelho.pgm", img_colors->vermelho);
-			if(video.nframe == 20) vc_write_image("../../verde.pgm", img_colors->verde);
-			if(video.nframe == 20) vc_write_image("../../azul.pgm", img_colors->azul);
-			if(video.nframe == 20) vc_write_image("../../0.pgm", cores[0].imagem);
-			if(video.nframe == 20) vc_write_image("../../1.pgm", cores[1].imagem);
-			if(video.nframe == 20) vc_write_image("../../2.pgm", cores[2].imagem); */
-
-
-			//qsort(cores, sizeof(cores) / sizeof(cores[0]), sizeof(CorContagemImagem), compare_cor);
-			
-			//if(video.nframe == 1) calcularResistenciaTotal(cores);
-
-/* 			int top[4] = {0};
-    		int *p = (int *)&ResColors;
-			int size = sizeof(ResistenceColorList) / sizeof(int);
-
-			for (int i = 0; i < size; i++) {
-				for (int j = 0; j < 4; j++) {
-					if (p[i] > top[j]) {
-						for (int k = 3; k > j; k--) {
-							top[k] = top[k - 1];
-						}
-						top[j] = p[i];
-						break;
-					}
-				}
-			} */
-			
-			//blobs[i].potencia= vc_check_resistence_color(blobs[i].x, blobs[i].y ,blobs[i].width, blobs[i].height, img_colors, ResColors);
-
-			/*
-		 	//Corta imagem pelo tamanho do blob
-		 	IVC *image_blob = vc_image_new(blobs[i].width, blobs[i].height, 1, 255);
-			memcpy(image_blob,image_3,blobs[i].width * blobs[i].height * 3);
-
-			//Verfica cores
-		 	for (int y = blobs[i].y; y < blobs[i].y + blobs[i].height; y++) {
-				for (int x = blobs[i].x; x < blobs[i].x - blobs[i].width; x++) {
-		 			long int pos = y * image_3->bytesperline + x * image_3->channels;		
-		 		}
-         	}
-		    
-			free(image_blob);*/
-			//vc_free_images(img_colors);
+			textOutput[w].valor = valor;
+			textOutput[w].x = blobs[i].x;
+			textOutput[w].y = blobs[i].y;
+			w++;
 		}
-		
-		
 
-		for (int i = 0; i < nlabel; i++){
-			if(blobs[i].area < 2000)
-				continue;
-			str = std::string("VALOR: ").append(std::to_string(blobs[i].potencia));
-			cv::putText(frame, str, cv::Point(blobs[i].x, blobs[i].y), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0), 2);
-			cv::putText(frame, str, cv::Point(blobs[i].x, blobs[i].y), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1);
+		/* ver imagem preto e branco */
+		cv::Mat imageToShow = cv::Mat(image_3->height, image_3->width, CV_8UC3);
+			for (int y = 0; y < image_3->height; y++) {
+				for (int x = 0; x < image_3->width; x++) {
+					uchar value = image_3->data[y * image_3->width + x];
+					imageToShow.at<cv::Vec3b>(y, x) = cv::Vec3b(value, value, value); // Replicar valor para os três canais
+				}
+			}
+		memcpy(frame.data, imageToShow.data, video.width * video.height * 3);
+
+		for(int u=0; u<w; u++) {
+			str = std::string("VALOR: ").append(std::to_string(textOutput[u].valor));
+			cv::putText(frame, str, cv::Point(textOutput[u].x, textOutput[u].y), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0), 2);
+			cv::putText(frame, str, cv::Point(textOutput[u].x, textOutput[u].y), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1);
 		}
+
+/* 		str = std::string("VALOR: ").append(std::to_string(textOutput[0].valor));
+		cv::putText(frame, str, cv::Point(20, 400), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0), 2);
+		cv::putText(frame, str, cv::Point(20, 400), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1); */
 		
 		str = std::string("BLOB'S DETETADOS: ").append(std::to_string(nlabel));
 		cv::putText(frame, str, cv::Point(20, 125), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 2);

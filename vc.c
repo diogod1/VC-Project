@@ -2068,7 +2068,7 @@ int vc_hsv_resistances_segmentation(IVC *src, IVC *dst, ImageColors *img_colors)
 		*/
 		{25, 55, 35, 64, 45, 90},     // Corpo resistência
 		{0, 360, 0, 35, 0, 35},       // Preto
-		{2, 45, 30, 100, 2, 35},     // Castanho
+		{2, 45, 20, 100, 2, 60},     // Castanho
 		{340, 15, 35, 75, 55, 100},   // Vermelho
 		{15, 45, 50, 100, 60, 100},   // Laranja
 		{20, 35, 50, 100, 50, 100},   // Amarelo
@@ -2153,6 +2153,7 @@ int vc_hsv_resistances_segmentation(IVC *src, IVC *dst, ImageColors *img_colors)
 				valor <= colors[0].maxValue / 100.0f * 255 && valor >= colors[0].minValue / 100.0f * 255)
 			{
 				datadst[pos_dst] = 255; // Corpo resistência
+				img_colors->corpo->data[pos_dst] = 255;
 			}
 			else if (hue <= colors[2].maxHue && hue >= colors[2].minHue &&
 					 sat <= colors[2].maxSaturation && sat >= colors[2].minSaturation &&
@@ -2236,6 +2237,7 @@ int vc_hsv_resistances_segmentation(IVC *src, IVC *dst, ImageColors *img_colors)
 			else
 			{
 				datadst[pos_dst] = 0;
+				img_colors->corpo->data[pos_dst] = 0;
 				img_colors->preto->data[pos_dst] = 0;
 				img_colors->castanho->data[pos_dst] = 0;
 				img_colors->vermelho->data[pos_dst] = 0;
@@ -2353,6 +2355,7 @@ int vc_check_resistence_color(int xpos, int ypos, int width, int height, ImageCo
 
 void vc_initialize_colors(int width, int height, ImageColors *img_colors, int channels, int levels)
 {
+	img_colors->corpo = vc_image_new(width, height, channels, levels);
 	img_colors->preto = vc_image_new(width, height, channels, levels);
 	img_colors->castanho = vc_image_new(width, height, channels, levels);
 	img_colors->vermelho = vc_image_new(width, height, channels, levels);
@@ -2367,6 +2370,8 @@ void vc_initialize_colors(int width, int height, ImageColors *img_colors, int ch
 
 void vc_free_images(ImageColors *img_colors)
 {
+	if (img_colors->corpo)
+		vc_image_free(img_colors->corpo);
 	if (img_colors->preto)
 		vc_image_free(img_colors->preto);
 	if (img_colors->castanho)
