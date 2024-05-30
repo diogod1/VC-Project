@@ -105,6 +105,7 @@ int main(void) {
 
 		// Copia dados de imagem da estrutura cv::Mat para uma estrutura IVC
 		memcpy(image->data, frame.data, video.width * video.height * 3);
+		if(video.nframe < 135) continue;
 		// Executa uma fun��o da nossa biblioteca vc
         vc_bgr_to_rgb(image,image_2);
 		if(video.nframe == 9) vc_write_image("../../frame9.pgm", image_2);
@@ -112,7 +113,10 @@ int main(void) {
         /*Segmentar o corpo*/
 		vc_hsv_resistances_segmentation(image_2,image_3,img_colors);
 
-        vc_binary_close(image_3,image_3,5,5);
+        vc_binary_open(image_3,image_3,1,7);
+		//vc_binary_open(img_colors->vermelho,img_colors->vermelho,5,5);
+		vc_binary_open(img_colors->azul,img_colors->azul,1,3);
+		vc_binary_open(img_colors->castanho,img_colors->castanho,1,3);
 
 		int nlabel;
 		OVC *blobs = vc_binary_blob_labelling(image_3, image_6, &nlabel);
@@ -124,30 +128,38 @@ int main(void) {
 		ResistenceColorList ResColors;
 		for (int i = 0; i < nlabel; i++){
 			// filtrar apenas pelas resistências para o calculo dos ohms
-		 	if(blobs[i].area < 5000 || blobs[i].area > 10000){
+		 	if(blobs[i].area < 3500 || blobs[i].area > 10000){
 				continue;
 			}
 
 			ResColors = {0};
-			for (int y = blobs[i].y; y < blobs[i].y + blobs[i].height; y++) {
-				for (int x = blobs[i].x; x < blobs[i].x + blobs[i].width; x++) {
-					int pos = y * image_3->width + x;
-					if(img_colors->corpo->data[pos] == 255) continue;
-					else if(img_colors->verde->data[pos] == 255) ResColors.lista_verde++;
-					else if(img_colors->azul->data[pos] == 255)  ResColors.lista_azul++;
-					else if(img_colors->vermelho->data[pos] == 255) ResColors.lista_vermelho++;
-					//if(img_colors->amarelo->data[pos] == 255) ResColors.lista_amarelo++;
-					else if (img_colors->laranja->data[pos] == 255) ResColors.lista_laranja++;
-					else if (img_colors->preto->data[pos] == 255) ResColors.lista_preto++;
-					else if (img_colors->castanho->data[pos] == 255) ResColors.lista_castanho++;
-
-					//image_3->data[y * image_3->width + x] = 0;
-				}
+			/*Criar função check para verificar se há resitencias-- correr blob*/
+			bool resitence_check = vc_check_resistence_body(blobs[i].x, blobs[i].y ,blobs[i].width, blobs[i].height, img_colors->corpo);
+			if(resitence_check == true){
+				ResColors = vc_check_resistence_color(blobs[i].x, blobs[i].y ,blobs[i].width, blobs[i].height, img_colors);
+			}else{
+				continue;
 			}
+			// for (int y = blobs[i].y; y < blobs[i].y + blobs[i].height; y++) {
+			// 	for (int x = blobs[i].x; x < blobs[i].x + blobs[i].width; x++) {
+			// 		int pos = y * image_3->width + x;
+			// 		if(img_colors->corpo->data[pos] == 255) continue;
+			// 		else if(img_colors->verde->data[pos] == 255) ResColors.lista_verde++;
+			// 		else if(img_colors->azul->data[pos] == 255)  ResColors.lista_azul++;
+			// 		else if(img_colors->vermelho->data[pos] == 255) ResColors.lista_vermelho++;
+			// 		//if(img_colors->amarelo->data[pos] == 255) ResColors.lista_amarelo++;
+			// 		else if (img_colors->laranja->data[pos] == 255) ResColors.lista_laranja++;
+			// 		else if (img_colors->preto->data[pos] == 255) ResColors.lista_preto++;
+			// 		else if (img_colors->castanho->data[pos] == 255) ResColors.lista_castanho++;
+
+			// 		//image_3->data[y * image_3->width + x] = 0;
+			// 	}
+			// }
+			printf("Vermelho: %d Verde: %d Azul: %d Castanho: %d\n", ResColors.lista_vermelho, ResColors.lista_verde, ResColors.lista_azul, ResColors.lista_castanho);
 
 			CorContagemImagem cores[] = {
 				{1,'0', ResColors.lista_preto, img_colors->preto, INT_MAX},
-				//{10,'1', ResColors.lista_castanho, img_colors->castanho, INT_MAX},
+				{10,'1', ResColors.lista_castanho, img_colors->castanho, INT_MAX},
 				{100,'2', ResColors.lista_vermelho, img_colors->vermelho, INT_MAX},
 				//{ResColors.lista_laranja, img_colors->laranja, INT_MAX},
 				//{ResColors.lista_amarelo, img_colors->amarelo, INT_MAX},
@@ -157,7 +169,6 @@ int main(void) {
 
 			CorContagemImagem temp;
 			int n = sizeof(cores) / sizeof(cores[0]);
-
 			
 			for (int x = 0; x < n; ++x) 
 			{
@@ -207,20 +218,22 @@ int main(void) {
 			fullString[1] = cores[1].digito;
 			fullString[2] = '\0';
 
-			if(video.nframe == 9) vc_write_image("../../castanho.pgm", img_colors->castanho);
+			// if(video.nframe == 100) 
+			// 	vc_write_image("../../castanho.pgm", img_colors->castanho);
 			int valor = atoi(fullString) * cores[2].multiplicador;
 
 			textOutput[w].valor = valor;
 			textOutput[w].x = blobs[i].x;
 			textOutput[w].y = blobs[i].y;
 			w++;
+			ResColors = {0};
 		}
 
 		/* ver imagem preto e branco */
-		cv::Mat imageToShow = cv::Mat(image_3->height, image_3->width, CV_8UC3);
-			for (int y = 0; y < image_3->height; y++) {
-				for (int x = 0; x < image_3->width; x++) {
-					uchar value = image_3->data[y * image_3->width + x];
+		cv::Mat imageToShow = cv::Mat(img_colors->castanho->height, img_colors->castanho->width, CV_8UC3);
+			for (int y = 0; y < img_colors->castanho->height; y++) {
+				for (int x = 0; x < img_colors->castanho->width; x++) {
+					uchar value = img_colors->castanho->data[y * img_colors->castanho->width + x];
 					imageToShow.at<cv::Vec3b>(y, x) = cv::Vec3b(value, value, value); // Replicar valor para os três canais
 				}
 			}
