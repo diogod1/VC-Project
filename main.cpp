@@ -5,6 +5,7 @@
 #include <opencv2\core.hpp>
 #include <opencv2/objdetect/objdetect.hpp> 
 #include <opencv2\highgui.hpp>
+#include <opencv2/imgproc.hpp>
 #include <opencv2\videoio.hpp>
 
 extern "C" {
@@ -109,11 +110,10 @@ int main(void) {
 		video.nframe = (int)capture.get(cv::CAP_PROP_POS_FRAMES);
 		videoFrame = video.nframe;
 
+		//if(video.nframe < 300) continue;
 		// Copia dados de imagem da estrutura cv::Mat para uma estrutura IVC
 		memcpy(image->data, frame.data, video.width * video.height * 3);
-		//if(video.nframe < 300) continue;
-		//if(video.nframe < 650) continue;
-		//if(video.nframe < 400) continue;
+
 		// Executa uma fun��o da nossa biblioteca vc
         vc_bgr_to_rgb(image,image_2);
 		if(video.nframe == 660) vc_write_image("../../frame9.pgm", image_2);
@@ -121,8 +121,8 @@ int main(void) {
         /*Segmentar o corpo*/
 		vc_hsv_resistances_segmentation(image_2,image_3,img_colors);
 
+		/*Limpar Ruido das imagens e dilatar*/
         vc_binary_open(image_3,image_3,1,7);
-		//vc_binary_open(img_colors->vermelho,img_colors->vermelho,5,5);
 		vc_binary_open(img_colors->azul,img_colors->azul,1,3);
 		vc_binary_open(img_colors->castanho,img_colors->castanho,1,3);
 
@@ -226,38 +226,41 @@ int main(void) {
 			fullString[1] = cores[1].digito;
 			fullString[2] = '\0';
 			int valor = atoi(fullString) * cores[2].multiplicador;
-			//ResColors = {0}; // verificar se dps podemos tirar
+			
+			str = std::to_string(valor) + "-Ohms";
+			//cv::putText(frame, str, cv::Point(blobs[i].x, blobs[i].y - 5), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 0, 0), 2);
+			cv::putText(frame, str, cv::Point(blobs[i].x, blobs[i].y - 5), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255, 0, 0), 2);
 
-			// /* ver imagem preto e branco */
-			// cv::Mat imageToShow = cv::Mat(img_colors->castanho->height, img_colors->castanho->width, CV_8UC3);
-			// for (int y = 0; y < img_colors->castanho->height; y++) {
-			//	for (int x = 0; x < img_colors->castanho->width; x++) {
-			//		uchar value = img_colors->vermelho->data[y * img_colors->castanho->width + x];
-			//		imageToShow.at<cv::Vec3b>(y, x) = cv::Vec3b(value, value, value); // Replicar valor para os três canais
-			//	}
-			//}
-			//memcpy(frame.data, imageToShow.data, video.width * video.height * 3);
-
-			str = std::string("VALOR: ").append(std::to_string(valor));
-			cv::putText(frame, str, cv::Point(blobs[i].x, blobs[i].y), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0), 2);
-			cv::putText(frame, str, cv::Point(blobs[i].x, blobs[i].y), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1);
+			/*Bounding Box a usar openvc*/
+			cv::rectangle(frame, cv::Point(blobs[i].x, blobs[i].y), cv::Point(blobs[i].x + blobs[i].width, blobs[i].y + blobs[i].height ), cv::Scalar(255, 0, 0), 2);
+			cv::circle(frame, cv::Point(blobs[i].xc, blobs[i].yc), 1, cv::Scalar(255, 0, 0), 5);
 		}
 		
-		str = std::string("BLOB'S DETETADOS: ").append(std::to_string(nlabel));
-		cv::putText(frame, str, cv::Point(20, 125), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 2);
-		cv::putText(frame, str, cv::Point(20, 125), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 1);
+		/*Quantidade de blobs detetados*/
+		// str = std::string("BLOB'S DETETADOS: ").append(std::to_string(nlabel));
+		// cv::putText(frame, str, cv::Point(20, 125), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 2);
+		// cv::putText(frame, str, cv::Point(20, 125), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 1);
+
+		str = std::string("RESOLUCAO: ").append(std::to_string(video.width)).append("x").append(std::to_string(video.height));
+		cv::putText(frame, str, cv::Point(20, 25), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 2);
+		cv::putText(frame, str, cv::Point(20, 25), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 1);
+
+		str = std::string("TOTAL DE FRAMES: ").append(std::to_string(video.ntotalframes));
+		cv::putText(frame, str, cv::Point(20, 50), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 2);
+		cv::putText(frame, str, cv::Point(20, 50), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 1);
 
 		str = std::string("FRAME: ").append(std::to_string(video.nframe));
-		cv::putText(frame, str, cv::Point(20, 170), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 2);
-		cv::putText(frame, str, cv::Point(20, 170), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 1);
+		cv::putText(frame, str, cv::Point(20, 75), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 2);
+		cv::putText(frame, str, cv::Point(20, 75), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 1);
+
+		str = std::string("N. DA FRAME: ").append(std::to_string(video.nframe));
+		cv::putText(frame, str, cv::Point(20, 100), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 2);
+		cv::putText(frame, str, cv::Point(20, 100), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 1);
 
 		/* Exibe a frame */
 		cv::imshow("VC - VIDEO", frame);
-		//cv::imshow("VC - VERMELHO", frame);
-		//cv::imshow("VC - CASTANHO", frame);
 		memcpy(frame.data, image->data, video.width * video.height * 3);
 		cv::imshow("VC - MASK", frame);
-		//cv::imshow("VC - VIDEO - VERMELHA", frame2);
 
 		/* Sai da aplica��o, se o utilizador premir a tecla 'q' */
 		key = cv::waitKey(1);
