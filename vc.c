@@ -2066,17 +2066,20 @@ int vc_hsv_resistances_segmentation(IVC *src, IVC *dst, ImageColors *img_colors)
 		{0, 360, 0, 10, 20, 80},	  // Cinza
 		{0, 360, 0, 0, 100, 100}	  // Branco
 		*/
-		{25, 55, 35, 64, 45, 90},	  // Corpo resistência
+		//{25, 55, 35, 64, 45, 90},	  // Corpo resistência
+		{30, 55, 35, 64, 45, 90},	  // Corpo resistência
 		{0, 360, 0, 35, 0, 35},		  // Preto
-		{10, 30, 25, 40, 25, 43},	  // Castanho
+		//{55, 85, 5, 17, 20, 32},
+		//{10, 50, 25, 40, 25, 43},	  // Castanho
+		{10, 20, 25, 50, 25, 50},	  // Castanho
 		{340, 15, 35, 75, 55, 100},	  // Vermelho
-		{15, 45, 50, 100, 60, 100},	  // Laranja
+		{25, 30, 50, 100, 60, 100},	  // Laranja
 		{20, 35, 50, 100, 50, 100},	  // Amarelo
 		{75, 165, 30, 100, 30, 100},  // Verde
 		{150, 210, 10, 55, 14, 55},	  // Azul
 		{220, 320, 30, 100, 30, 100}, // Roxo
 		{0, 360, 0, 10, 20, 80},	  // Cinza
-		{0, 360, 0, 0, 90, 100}		  // Branco
+		{0, 360, 0, 0, 90, 100},	  // Branco
 	};
 
 	unsigned char *datasrc = (unsigned char *)src->data;
@@ -2276,11 +2279,25 @@ ResistenceColorList vc_check_resistence_color(int xpos, int ypos, int width, int
 			// Desconsiderar pequenos blobs
 			if (blobs[i].area < 300)
 			{
+				for (int y = blobs[i].y; y < blobs[i].y + blobs[i].height; y++) 
+				{
+					for (int x = blobs[i].x; x < blobs[i].x + blobs[i].width; x++)
+					{
+						int pos = y * 720 + x;
+						img_colors->vermelho->data[pos] = 0;
+					}
+				}
 				continue;
 			}
 			else if (blobs[i].xc > xpos && blobs[i].xc < xpos + width && blobs[i].yc > ypos && blobs[i].yc < ypos + height)
 			{
-				ResColors.lista_vermelho += 1;
+				for (int y = ypos; y < ypos + height; y++) 
+				{
+					for (int x = xpos; x < xpos + width; x++)
+					{
+						ResColors.lista_vermelho += 1;
+					}
+				}
 			}
 		}
 
@@ -2307,7 +2324,13 @@ ResistenceColorList vc_check_resistence_color(int xpos, int ypos, int width, int
 			}
 			else if (blobs[i].xc > xpos && blobs[i].xc < xpos + width && blobs[i].yc > ypos && blobs[i].yc < ypos + height)
 			{
-				ResColors.lista_azul += 1;
+				for (int y = ypos; y < ypos + blobs[i].height; y++) 
+				{
+					for (int x = xpos; x < xpos + blobs[i].width; x++)
+					{
+						ResColors.lista_azul += 1;
+					}
+				}
 			}
 		}
 
@@ -2334,7 +2357,13 @@ ResistenceColorList vc_check_resistence_color(int xpos, int ypos, int width, int
 			}
 			else if (blobs[i].xc > xpos && blobs[i].xc < xpos + width && blobs[i].yc > ypos && blobs[i].yc < ypos + height)
 			{
-				ResColors.lista_verde += 1;
+				for (int y = ypos; y < ypos + blobs[i].height; y++) 
+				{
+					for (int x = xpos; x < xpos + blobs[i].width; x++)
+					{
+						ResColors.lista_verde += 1;
+					}
+				}
 			}
 		}
 
@@ -2361,7 +2390,13 @@ ResistenceColorList vc_check_resistence_color(int xpos, int ypos, int width, int
 			}
 			else if (blobs[i].xc > xpos && blobs[i].xc < xpos + width && blobs[i].yc > ypos && blobs[i].yc < ypos + height)
 			{
-				ResColors.lista_castanho += 1;
+				for (int y = ypos; y < ypos + blobs[i].height; y++) 
+				{
+					for (int x = xpos; x < xpos + blobs[i].width; x++)
+					{
+						ResColors.lista_castanho += 1;
+					}
+				}
 			}
 		}
 
@@ -2369,14 +2404,72 @@ ResistenceColorList vc_check_resistence_color(int xpos, int ypos, int width, int
 		vc_image_free(image_blob);
 	}
 
-	// if (ResColors.lista_vermelho == 1 && ResColors.lista_verde == 1 && ResColors.lista_azul == 1)
-	// {
-	// 	return 1120;
-	// }
-	// else if (ResColors.lista_vermelho == 2)
-	// {
-	// 	return 246;
-	// }
+	if (img_colors->preto->data != NULL)
+	{
+
+		IVC *image_blob = vc_image_new(img_colors->preto->width, img_colors->preto->height, 1, 255);
+		OVC *blobs = vc_binary_blob_labelling(img_colors->preto, image_blob, &nlabel);
+		if (blobs != NULL)
+		{
+			vc_binary_blob_info(image_blob, blobs, nlabel);
+		}
+
+		for (int i = 0; i < nlabel; i++)
+		{
+			// Desconsiderar pequenos blobs
+			if (blobs[i].area < 300)
+			{
+				continue;
+			}
+			else if (blobs[i].xc > xpos && blobs[i].xc < xpos + width && blobs[i].yc > ypos && blobs[i].yc < ypos + height)
+			{
+				for (int y = ypos; y < ypos + height; y++) 
+				{
+					for (int x = xpos; x < xpos + width; x++)
+					{
+						ResColors.lista_preto += 1;
+					}
+				}
+			}
+		}
+
+		free(blobs);
+		vc_image_free(image_blob);
+	}
+
+	if (img_colors->laranja->data != NULL)
+	{
+
+		IVC *image_blob = vc_image_new(img_colors->laranja->width, img_colors->laranja->height, 1, 255);
+		OVC *blobs = vc_binary_blob_labelling(img_colors->laranja, image_blob, &nlabel);
+		if (blobs != NULL)
+		{
+			vc_binary_blob_info(image_blob, blobs, nlabel);
+		}
+
+		for (int i = 0; i < nlabel; i++)
+		{
+			// Desconsiderar pequenos blobs
+			if (blobs[i].area < 300)
+			{
+				continue;
+			}
+			else if (blobs[i].xc > xpos && blobs[i].xc < xpos + width && blobs[i].yc > ypos && blobs[i].yc < ypos + height)
+			{
+				for (int y = ypos; y < ypos + height; y++) 
+				{
+					for (int x = xpos; x < xpos + width; x++)
+					{
+						ResColors.lista_laranja += 1;
+					}
+				}
+			}
+		}
+
+		free(blobs);
+		vc_image_free(image_blob);
+	}
+
 	return ResColors;
 }
 
@@ -2537,6 +2630,7 @@ bool vc_check_resistence_body(int xpos, int ypos, int width, int height, IVC *im
 		OVC *blobs = vc_binary_blob_labelling(image, image_blob, &nlabel);
 		if (blobs != NULL)
 		{
+			if(videoFrame == 660) vc_write_image("../../frame654_blobs.pgm", image);
 			vc_binary_blob_info(image_blob, blobs, nlabel);
 		}
 

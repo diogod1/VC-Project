@@ -69,11 +69,14 @@ int main(void) {
 	/* Frame rate do v�deo */
 	video.fps = (int)capture.get(cv::CAP_PROP_FPS);
 	/* Resolu��o do v�deo */
+	videoWidth = (int)capture.get(cv::CAP_PROP_FRAME_WIDTH);
+	videoHeight = (int)capture.get(cv::CAP_PROP_FRAME_HEIGHT);
 	video.width = (int)capture.get(cv::CAP_PROP_FRAME_WIDTH);
 	video.height = (int)capture.get(cv::CAP_PROP_FRAME_HEIGHT);
 
 	/* Cria uma janela para exibir o v�deo */
 	cv::namedWindow("VC - VIDEO", cv::WND_PROP_AUTOSIZE);
+	cv::namedWindow("VC - VIDEO - VERMELHA", cv::WND_PROP_AUTOSIZE);
 	cv::namedWindow("VC - MASK", cv::WND_PROP_AUTOSIZE);
 
 	/* Inicia o timer */
@@ -93,22 +96,27 @@ int main(void) {
 	vc_initialize_colors(video.width,video.height,img_colors,1,255);
 
 	cv::Mat frame;
+	cv::Mat frame2;
 	while (key != 'q') {
 		/* Leitura de uma frame do v�deo */
 		capture.read(frame);
+		capture.read(frame2);
 
 		/* Verifica se conseguiu ler a frame */
 		if (frame.empty()) break;
 
 		/* N�mero da frame a processar */
 		video.nframe = (int)capture.get(cv::CAP_PROP_POS_FRAMES);
+		videoFrame = video.nframe;
 
 		// Copia dados de imagem da estrutura cv::Mat para uma estrutura IVC
 		memcpy(image->data, frame.data, video.width * video.height * 3);
-		if(video.nframe < 135) continue;
+		//if(video.nframe < 500) continue;
+		//if(video.nframe < 650) continue;
+		//if(video.nframe < 400) continue;
 		// Executa uma fun��o da nossa biblioteca vc
         vc_bgr_to_rgb(image,image_2);
-		if(video.nframe == 9) vc_write_image("../../frame9.pgm", image_2);
+		if(video.nframe == 660) vc_write_image("../../frame9.pgm", image_2);
 
         /*Segmentar o corpo*/
 		vc_hsv_resistances_segmentation(image_2,image_3,img_colors);
@@ -161,7 +169,7 @@ int main(void) {
 				{1,'0', ResColors.lista_preto, img_colors->preto, INT_MAX},
 				{10,'1', ResColors.lista_castanho, img_colors->castanho, INT_MAX},
 				{100,'2', ResColors.lista_vermelho, img_colors->vermelho, INT_MAX},
-				//{ResColors.lista_laranja, img_colors->laranja, INT_MAX},
+				{1000, '3', ResColors.lista_laranja, img_colors->laranja, INT_MAX},
 				//{ResColors.lista_amarelo, img_colors->amarelo, INT_MAX},
 				{100000,'5', ResColors.lista_verde, img_colors->verde, INT_MAX},
 				{1000000,'6', ResColors.lista_azul, img_colors->azul, INT_MAX}
@@ -170,6 +178,7 @@ int main(void) {
 			CorContagemImagem temp;
 			int n = sizeof(cores) / sizeof(cores[0]);
 			
+			// ter atenção aqui ao blob - todo
 			for (int x = 0; x < n; ++x) 
 			{
 				for (int y = x + 1; y < n; ++y) 
@@ -183,9 +192,17 @@ int main(void) {
 				}
 			}
 
-			for (int y = 0; y < video.height; y++) 
+			if(cores[2].contagem < 500) {
+				cores[2] = cores[0];
+			}
+
+			if(cores[1].contagem < 500) {
+				cores[1] = cores[0];
+			}
+
+			for (int y = blobs[i].y; y < blobs[i].y + blobs[i].height; y++) 
 			{
-				for (int x = 0; x < video.width; x++) 
+				for (int x = blobs[i].x; x < blobs[i].x + blobs[i].width; x++) 
 				{
 					int pos = y * image_3->width + x;
 					if(cores[0].imagem->data[pos] == 255) {
@@ -199,6 +216,9 @@ int main(void) {
 					}
 				}
 			}
+
+			if(video.nframe == 340) vc_write_image("../../castanho.pgm", img_colors->castanho);
+			if(video.nframe == 340) vc_write_image("../../vermelho.pgm", img_colors->vermelho);
 
 			for (int l = 0; l < 3; l++)
 			{
@@ -227,17 +247,43 @@ int main(void) {
 			textOutput[w].y = blobs[i].y;
 			w++;
 			ResColors = {0};
+
+			//// TESTE
+
+			str = std::string("VALOR: ").append(std::to_string(textOutput[w].valor));
+			cv::putText(frame, str, cv::Point(textOutput[w].x, textOutput[w].y), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0), 2);
+			cv::putText(frame, str, cv::Point(textOutput[w].x, textOutput[w].y), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1);
+
+			//TESTEEE
 		}
 
 		/* ver imagem preto e branco */
 		cv::Mat imageToShow = cv::Mat(img_colors->castanho->height, img_colors->castanho->width, CV_8UC3);
 			for (int y = 0; y < img_colors->castanho->height; y++) {
 				for (int x = 0; x < img_colors->castanho->width; x++) {
-					uchar value = img_colors->castanho->data[y * img_colors->castanho->width + x];
+					uchar value = img_colors->vermelho->data[y * img_colors->castanho->width + x];
+					/* uchar value2 = value;
+					if(value == 0) {
+						value = img_colors->castanho->data[y * img_colors->castanho->width + x] == 255 ? 100 : 0;
+						value2 = value;
+					}
+					if(value == 0) {
+						value = img_colors->corpo->data[y * img_colors->corpo->width + x] == 255 ? 180 : 0;
+						value2 = img_colors->corpo->data[y * img_colors->corpo->width + x] == 255 ? 255 : 0;
+					} */
 					imageToShow.at<cv::Vec3b>(y, x) = cv::Vec3b(value, value, value); // Replicar valor para os três canais
 				}
 			}
 		memcpy(frame.data, imageToShow.data, video.width * video.height * 3);
+
+		cv::Mat imageToShow2 = cv::Mat(img_colors->castanho->height, img_colors->castanho->width, CV_8UC3);
+			for (int y = 0; y < img_colors->castanho->height; y++) {
+				for (int x = 0; x < img_colors->castanho->width; x++) {
+					uchar value = img_colors->vermelho->data[y * img_colors->castanho->width + x];
+					imageToShow2.at<cv::Vec3b>(y, x) = cv::Vec3b(value, value, value); // Replicar valor para os três canais
+				}
+			}
+		memcpy(frame2.data, imageToShow2.data, video.width * video.height * 3);
 
 		for(int u=0; u<w; u++) {
 			str = std::string("VALOR: ").append(std::to_string(textOutput[u].valor));
@@ -259,8 +305,11 @@ int main(void) {
 
 		/* Exibe a frame */
 		cv::imshow("VC - VIDEO", frame);
+		//cv::imshow("VC - VERMELHO", frame);
+		//cv::imshow("VC - CASTANHO", frame);
 		memcpy(frame.data, image->data, video.width * video.height * 3);
 		cv::imshow("VC - MASK", frame);
+		//cv::imshow("VC - VIDEO - VERMELHA", frame2);
 
 		/* Sai da aplica��o, se o utilizador premir a tecla 'q' */
 		key = cv::waitKey(1);
@@ -282,6 +331,7 @@ int main(void) {
 	/* Fecha a janela */
 	cv::destroyWindow("VC - VIDEO");
 	cv::destroyWindow("VC - MASK");
+	cv::destroyWindow("VC - VIDEO - VERMELHA");
 
 	/* Fecha o ficheiro de v�deo */
 	capture.release();

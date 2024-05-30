@@ -88,6 +88,10 @@ typedef struct {
     int valor;
 } TextOutput;
 
+int videoWidth;
+int videoHeight;
+int videoFrame;
+
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //                    PROT�TIPOS DE FUN��ES
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
