@@ -2069,6 +2069,7 @@ int vc_hsv_resistances_segmentation(IVC *src, IVC *dst, ImageColors *img_colors)
 		//{25, 55, 35, 64, 45, 90},	  // Corpo resistência
 		{30, 55, 35, 64, 45, 90},	  // Corpo resistência
 		{0, 360, 0, 35, 0, 35},		  // Preto
+		//{0, 360, 0, 100, 0, 15},		  // Preto
 		//{55, 85, 5, 17, 20, 32},
 		//{10, 50, 25, 40, 25, 43},	  // Castanho
 		{10, 20, 25, 50, 25, 50},	  // Castanho
