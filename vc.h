@@ -88,9 +88,14 @@ typedef struct {
     int valor;
 } TextOutput;
 
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//                   VARIÁVEIS GLOBAIS
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 int videoWidth;
 int videoHeight;
 int videoFrame;
+
+int debug;
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //                    PROT�TIPOS DE FUN��ES

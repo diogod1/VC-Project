@@ -2052,29 +2052,13 @@ int vc_bgr_to_rgb(IVC *src, IVC *dst)
 int vc_hsv_resistances_segmentation(IVC *src, IVC *dst, ImageColors *img_colors)
 {
 	ColorRange colors[11] = {
-		/*
-		{25, 55, 35, 64, 45, 90},	// Corpo resisitencia
-		{0, 360, 0, 0, 100, 100},	// Preto
-		{10, 50, 30, 100, 20, 100}, // Castanho
-		{340, 15, 35, 75, 55, 100}, // Vermelho
-		{0, 360, 0, 0, 100, 100},	// Laranja
-		{0, 360, 0, 0, 100, 100},	// Amarelo
-		//{65, 150, 30, 100, 30, 100},  // Verde
-		{75, 165, 30, 100, 30, 100},
-		{155, 210, 5, 55, 14, 55},	  // Azul
-		{220, 320, 30, 100, 30, 100}, // Roxo
-		{0, 360, 0, 10, 20, 80},	  // Cinza
-		{0, 360, 0, 0, 100, 100}	  // Branco
-		*/
-		//{25, 55, 35, 64, 45, 90},	  // Corpo resistência
 		{30, 55, 35, 64, 45, 90},	  // Corpo resistência
 		{0, 360, 0, 35, 0, 35},		  // Preto
-		//{0, 360, 0, 100, 0, 15},		  // Preto
-		//{55, 85, 5, 17, 20, 32},
-		//{10, 50, 25, 40, 25, 43},	  // Castanho
-		{10, 20, 25, 50, 25, 50},	  // Castanho
-		{340, 15, 35, 75, 55, 100},	  // Vermelho
-		{25, 30, 50, 100, 60, 100},	  // Laranja
+		{12, 30, 25, 50, 25, 50},	  // Castanho
+		//{11, 30, 25, 50, 25, 50},	  // Castanho
+		//{340, 10, 35, 75, 55, 100}, // Vermelho
+		{340, 11, 35, 75, 55, 100},	  // Vermelho
+		{1, 22, 65, 100, 80, 100},	  // Laranja
 		{20, 35, 50, 100, 50, 100},	  // Amarelo
 		{75, 165, 30, 100, 30, 100},  // Verde
 		{150, 210, 10, 55, 14, 55},	  // Azul
@@ -2166,6 +2150,13 @@ int vc_hsv_resistances_segmentation(IVC *src, IVC *dst, ImageColors *img_colors)
 				datadst[pos_dst] = 255; // Castanho
 				img_colors->castanho->data[pos_dst] = 255;
 			}
+			else if (hue <= colors[4].maxHue && hue >= colors[4].minHue &&
+					 sat <= colors[4].maxSaturation && sat >= colors[4].minSaturation &&
+					 valor <= colors[4].maxValue / 100.0f * 255 && valor >= colors[4].minValue / 100.0f * 255)
+			{
+				datadst[pos_dst] = 255; // Laranja
+				img_colors->laranja->data[pos_dst] = 255;
+			}
 			else if (colors[3].minHue > colors[3].maxHue &&
 					 ((hue >= 0 && hue <= colors[3].maxHue) || (hue <= 360 && hue >= colors[3].minHue)) &&
 					 sat <= colors[3].maxSaturation && sat >= colors[3].minSaturation &&
@@ -2181,13 +2172,6 @@ int vc_hsv_resistances_segmentation(IVC *src, IVC *dst, ImageColors *img_colors)
 			{
 				datadst[pos_dst] = 255; // Vermelho - minHue < maxHue
 				img_colors->vermelho->data[pos_dst] = 255;
-			}
-			else if (hue <= colors[4].maxHue && hue >= colors[4].minHue &&
-					 sat <= colors[4].maxSaturation && sat >= colors[4].minSaturation &&
-					 valor <= colors[4].maxValue / 100.0f * 255 && valor >= colors[4].minValue / 100.0f * 255)
-			{
-				datadst[pos_dst] = 255; // Laranja
-				img_colors->laranja->data[pos_dst] = 255;
 			}
 			else if (hue <= colors[5].maxHue && hue >= colors[5].minHue &&
 					 sat <= colors[5].maxSaturation && sat >= colors[5].minSaturation &&
@@ -2278,7 +2262,7 @@ ResistenceColorList vc_check_resistence_color(int xpos, int ypos, int width, int
 		for (int i = 0; i < nlabel; i++)
 		{
 			// Desconsiderar pequenos blobs
-			if (blobs[i].area < 300)
+			if (blobs[i].area < 100)
 			{
 				for (int y = blobs[i].y; y < blobs[i].y + blobs[i].height; y++) 
 				{
@@ -2319,8 +2303,16 @@ ResistenceColorList vc_check_resistence_color(int xpos, int ypos, int width, int
 		for (int i = 0; i < nlabel; i++)
 		{
 			// Desconsiderar pequenos blobs
-			if (blobs[i].area < 300)
+			if (blobs[i].area < 200)
 			{
+				/* for (int y = blobs[i].y; y < blobs[i].y + blobs[i].height; y++) 
+				{
+					for (int x = blobs[i].x; x < blobs[i].x + blobs[i].width; x++)
+					{
+						int pos = y * 720 + x;
+						img_colors->azul->data[pos] = 0;
+					}
+				} */
 				continue;
 			}
 			else if (blobs[i].xc > xpos && blobs[i].xc < xpos + width && blobs[i].yc > ypos && blobs[i].yc < ypos + height)
@@ -2352,8 +2344,16 @@ ResistenceColorList vc_check_resistence_color(int xpos, int ypos, int width, int
 		for (int i = 0; i < nlabel; i++)
 		{
 			// Desconsiderar pequenos blobs
-			if (blobs[i].area < 300)
+			if (blobs[i].area < 200)
 			{
+				/* for (int y = blobs[i].y; y < blobs[i].y + blobs[i].height; y++) 
+				{
+					for (int x = blobs[i].x; x < blobs[i].x + blobs[i].width; x++)
+					{
+						int pos = y * 720 + x;
+						img_colors->verde->data[pos] = 0;
+					}
+				} */
 				continue;
 			}
 			else if (blobs[i].xc > xpos && blobs[i].xc < xpos + width && blobs[i].yc > ypos && blobs[i].yc < ypos + height)
@@ -2385,8 +2385,16 @@ ResistenceColorList vc_check_resistence_color(int xpos, int ypos, int width, int
 		for (int i = 0; i < nlabel; i++)
 		{
 			// Desconsiderar pequenos blobs
-			if (blobs[i].area < 300)
+			if (blobs[i].area < 200)
 			{
+				/* for (int y = blobs[i].y; y < blobs[i].y + blobs[i].height; y++) 
+				{
+					for (int x = blobs[i].x; x < blobs[i].x + blobs[i].width; x++)
+					{
+						int pos = y * 720 + x;
+						img_colors->castanho->data[pos] = 0;
+					}
+				} */
 				continue;
 			}
 			else if (blobs[i].xc > xpos && blobs[i].xc < xpos + width && blobs[i].yc > ypos && blobs[i].yc < ypos + height)
@@ -2418,8 +2426,16 @@ ResistenceColorList vc_check_resistence_color(int xpos, int ypos, int width, int
 		for (int i = 0; i < nlabel; i++)
 		{
 			// Desconsiderar pequenos blobs
-			if (blobs[i].area < 300)
+			if (blobs[i].area < 200)
 			{
+				/* for (int y = blobs[i].y; y < blobs[i].y + blobs[i].height; y++) 
+				{
+					for (int x = blobs[i].x; x < blobs[i].x + blobs[i].width; x++)
+					{
+						int pos = y * 720 + x;
+						img_colors->preto->data[pos] = 0;
+					}
+				} */
 				continue;
 			}
 			else if (blobs[i].xc > xpos && blobs[i].xc < xpos + width && blobs[i].yc > ypos && blobs[i].yc < ypos + height)
@@ -2451,8 +2467,16 @@ ResistenceColorList vc_check_resistence_color(int xpos, int ypos, int width, int
 		for (int i = 0; i < nlabel; i++)
 		{
 			// Desconsiderar pequenos blobs
-			if (blobs[i].area < 300)
+			if (blobs[i].area < 200)
 			{
+				/* for (int y = blobs[i].y; y < blobs[i].y + blobs[i].height; y++) 
+				{
+					for (int x = blobs[i].x; x < blobs[i].x + blobs[i].width; x++)
+					{
+						int pos = y * 720 + x;
+						img_colors->laranja->data[pos] = 0;
+					}
+				} */
 				continue;
 			}
 			else if (blobs[i].xc > xpos && blobs[i].xc < xpos + width && blobs[i].yc > ypos && blobs[i].yc < ypos + height)

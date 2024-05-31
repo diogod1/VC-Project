@@ -77,8 +77,6 @@ int main(void) {
 
 	/* Cria uma janela para exibir o v�deo */
 	cv::namedWindow("VC - VIDEO", cv::WND_PROP_AUTOSIZE);
-	cv::namedWindow("VC - VIDEO - VERMELHA", cv::WND_PROP_AUTOSIZE);
-	cv::namedWindow("VC - MASK", cv::WND_PROP_AUTOSIZE);
 
 	/* Inicia o timer */
 	vc_timer();
@@ -97,11 +95,9 @@ int main(void) {
 	vc_initialize_colors(video.width,video.height,img_colors,1,255);
 
 	cv::Mat frame;
-	cv::Mat frame2;
 	while (key != 'q') {
 		/* Leitura de uma frame do v�deo */
 		capture.read(frame);
-		capture.read(frame2);
 
 		/* Verifica se conseguiu ler a frame */
 		if (frame.empty()) break;
@@ -110,7 +106,7 @@ int main(void) {
 		video.nframe = (int)capture.get(cv::CAP_PROP_POS_FRAMES);
 		videoFrame = video.nframe;
 
-		//if(video.nframe < 300) continue;
+		//if(video.nframe < 160) continue;
 		// Copia dados de imagem da estrutura cv::Mat para uma estrutura IVC
 		memcpy(image->data, frame.data, video.width * video.height * 3);
 
@@ -123,16 +119,23 @@ int main(void) {
 
 		/*Limpar Ruido das imagens e dilatar*/
         vc_binary_open(image_3,image_3,1,7);
+
+		// damos open só pra imagens mais dificies?
+		/* vc_binary_open(img_colors->vermelho,img_colors->vermelho,1,3);
+		vc_binary_open(img_colors->verde,img_colors->verde,1,3);
+		vc_binary_open(img_colors->laranja,img_colors->laranja,1,3);
+		vc_binary_open(img_colors->preto,img_colors->preto,1,3); */
+
+		
 		vc_binary_open(img_colors->azul,img_colors->azul,1,3);
 		vc_binary_open(img_colors->castanho,img_colors->castanho,1,3);
+		
 
 		int nlabel;
 		OVC *blobs = vc_binary_blob_labelling(image_3, image_6, &nlabel);
 		if(blobs != NULL)
 			vc_binary_blob_info(image_6, blobs, nlabel);
-		
-		TextOutput textOutput[50] = {0};
-		int w = 0;
+
 		ResistenceColorList ResColors;
 		for (int i = 0; i < nlabel; i++){
 			// filtrar apenas pelas resistências para o calculo dos ohms
@@ -177,12 +180,12 @@ int main(void) {
 			}
 
 			// 2 cores iguais
-			if(cores[2].contagem < 500) {
+			if(cores[2].contagem < 400) {
 				cores[2] = cores[0];
 			}
 
 			// 3 cores iguais
-			if(cores[1].contagem < 500) {
+			if(cores[1].contagem < 400) {
 				cores[1] = cores[0];
 			}
 
@@ -259,8 +262,6 @@ int main(void) {
 
 		/* Exibe a frame */
 		cv::imshow("VC - VIDEO", frame);
-		memcpy(frame.data, image->data, video.width * video.height * 3);
-		cv::imshow("VC - MASK", frame);
 
 		/* Sai da aplica��o, se o utilizador premir a tecla 'q' */
 		key = cv::waitKey(1);
@@ -269,6 +270,8 @@ int main(void) {
     vc_image_free(image);
 	vc_image_free(image_2);
 	vc_image_free(image_3);
+	vc_image_free(image_4);
+	vc_image_free(image_6);
     
 	if (img_colors != NULL) {
         vc_free_images(img_colors);
@@ -281,8 +284,6 @@ int main(void) {
 
 	/* Fecha a janela */
 	cv::destroyWindow("VC - VIDEO");
-	cv::destroyWindow("VC - MASK");
-	cv::destroyWindow("VC - VIDEO - VERMELHA");
 
 	/* Fecha o ficheiro de v�deo */
 	capture.release();
