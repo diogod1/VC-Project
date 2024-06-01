@@ -53,7 +53,7 @@ int main(void) {
 
 	// Cria uma janela para exibir o vídeo
 	cv::namedWindow("VC - VIDEO", cv::WND_PROP_AUTOSIZE);
-	cv::namedWindow("VC - MASK", cv::WND_PROP_AUTOSIZE);
+	//cv::namedWindow("VC - MASK", cv::WND_PROP_AUTOSIZE);
 
 	// Inicia o timer
 	vc_timer();
@@ -77,14 +77,14 @@ int main(void) {
 	while (key != 'q') {
 		// Leitura de uma frame do vídeo
 		capture.read(frame);
-		capture.read(frame2);
+		//capture.read(frame2);
 
 		// Verifica se conseguiu ler a frame
 		if (frame.empty()) break;
 		
 		video.nframe = (int)capture.get(cv::CAP_PROP_POS_FRAMES);
 
-		if(video.nframe < 500) continue;
+		if(video.nframe < 300) continue;
 		// Cópia dados de imagem da estrutura cv::Mat para uma estrutura IVC
 		memcpy(image->data, frame.data, video.width * video.height * 3);
 
@@ -170,15 +170,15 @@ int main(void) {
 			int nlabelCores;
 			OVC *blobsPrimeiraCor = vc_binary_blob_labelling_custom(cores[0].imagem, imageBlobPrimeiraCor, &nlabelCores, blobs[i].x, blobs[i].y, blobs[i].width, blobs[i].height);
 			if(blobsPrimeiraCor != NULL)
-				vc_binary_blob_info_custom(imageBlobPrimeiraCor, blobsPrimeiraCor, nlabelCores, 300, blobs[i].x, blobs[i].y, blobs[i].width, blobs[i].height);
+				vc_binary_blob_info_custom(imageBlobPrimeiraCor, blobsPrimeiraCor, nlabelCores, 190, blobs[i].x, blobs[i].y, blobs[i].width, blobs[i].height);
 
 			OVC *blobsSegundaCor = vc_binary_blob_labelling_custom(cores[1].imagem, imageBlobSegundaCor, &nlabelCores, blobs[i].x, blobs[i].y, blobs[i].width, blobs[i].height);
 			if(blobsSegundaCor != NULL)
-				vc_binary_blob_info_custom(imageBlobSegundaCor, blobsSegundaCor, nlabelCores, 300, blobs[i].x, blobs[i].y, blobs[i].width, blobs[i].height);
+				vc_binary_blob_info_custom(imageBlobSegundaCor, blobsSegundaCor, nlabelCores, 190, blobs[i].x, blobs[i].y, blobs[i].width, blobs[i].height);
 
 			OVC *blobsTerceiraCor = vc_binary_blob_labelling_custom(cores[2].imagem, imageBlobTerceiraCor, &nlabelCores, blobs[i].x, blobs[i].y, blobs[i].width, blobs[i].height);
 			if(blobsTerceiraCor != NULL)
-				vc_binary_blob_info_custom(imageBlobTerceiraCor, blobsTerceiraCor, nlabelCores, 300, blobs[i].x, blobs[i].y, blobs[i].width, blobs[i].height);
+				vc_binary_blob_info_custom(imageBlobTerceiraCor, blobsTerceiraCor, nlabelCores, 190, blobs[i].x, blobs[i].y, blobs[i].width, blobs[i].height);
 
 			// não há blobs
 			if(blobsPrimeiraCor == NULL || blobsSegundaCor == NULL || blobsTerceiraCor == NULL) continue;
@@ -196,7 +196,7 @@ int main(void) {
 				swap_blobs(&blobsPrimeiraCor, &blobsSegundaCor);
 			}
 
-			cv::Mat imageToShow = cv::Mat(img_colors->vermelho->height, img_colors->vermelho->width, CV_8UC3);
+			/* cv::Mat imageToShow = cv::Mat(img_colors->vermelho->height, img_colors->vermelho->width, CV_8UC3);
 			for (int y = 0; y < img_colors->vermelho->height; y++) {
 				for (int x = 0; x < img_colors->vermelho->width; x++) {
 					uchar value3 = img_colors->vermelho->data[y * img_colors->vermelho->width + x] == 255 ? 255 : 0;
@@ -227,7 +227,7 @@ int main(void) {
 					imageToShow.at<cv::Vec3b>(y, x) = cv::Vec3b(value, value2, value3); // Replicar valor para os três canais
 				}
 			}
-			memcpy(frame2.data, imageToShow.data, video.width * video.height * 3);
+			memcpy(frame2.data, imageToShow.data, video.width * video.height * 3); */
 			
 
 			/* int nlabelCores;
@@ -334,7 +334,7 @@ int main(void) {
 
 		/* Exibe a frame */
 		cv::imshow("VC - VIDEO", frame);
-		cv::imshow("VC - MASK", frame2);
+		//cv::imshow("VC - MASK", frame2);
 
 		/* Sai da aplica��o, se o utilizador premir a tecla 'q' */
 		key = cv::waitKey(1);
@@ -357,7 +357,7 @@ int main(void) {
 
 	/* Fecha a janela */
 	cv::destroyWindow("VC - VIDEO");
-	cv::destroyWindow("VC - MASK");
+	//cv::destroyWindow("VC - MASK");
 
 	/* Fecha o ficheiro de v�deo */
 	capture.release();

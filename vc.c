@@ -2089,10 +2089,10 @@ int vc_hsv_resistances_segmentation(IVC *src, IVC *dst, ImageColors *img_colors)
 		{0, 360, 0, 35, 0, 35},		  // Preto
 		{12, 30, 20, 50, 20, 50},	  // Castanho
 		{340, 15, 50, 90, 50, 100},	  // Vermelho
-		{1, 22, 65, 100, 80, 100},	  // Laranja
+		{1, 10, 65, 100, 80, 100},	  // Laranja
 		{20, 35, 50, 100, 50, 100},	  // Amarelo
 		{75, 165, 30, 100, 30, 100},  // Verde
-		{150, 210, 10, 55, 14, 55},	  // Azul
+		{190, 220, 20, 100, 50, 100},	  // Azul
 		{220, 320, 30, 100, 30, 100}, // Roxo
 		{0, 360, 0, 10, 20, 80},	  // Cinza
 		{0, 360, 0, 0, 90, 100},	  // Branco
@@ -2284,12 +2284,13 @@ ResistenceColorList vc_check_resistence_color(int xpos, int ypos, int width, int
 			if(x > xpos && x < xpos + width && y > ypos && y < ypos + height) {
 				int pos = y * videoWidth + x;
 
-				if(img_colors->vermelho->data[pos] == 255) ResColors.lista_vermelho++;
+				if(img_colors->laranja->data[pos] == 255) ResColors.lista_laranja++;
+				else if(img_colors->vermelho->data[pos] == 255) ResColors.lista_vermelho++;
 				else if(img_colors->azul->data[pos] == 255)  ResColors.lista_azul++;
 				else if(img_colors->verde->data[pos] == 255) ResColors.lista_verde++;
 				else if (img_colors->castanho->data[pos] == 255) ResColors.lista_castanho++;
 				else if (img_colors->preto->data[pos] == 255) ResColors.lista_preto++;
-				else if (img_colors->laranja->data[pos] == 255) ResColors.lista_laranja++;
+				
 				//else if(img_colors->amarelo->data[pos] = 255) ResColors.lista_amarelo++;
 			}
 		}
