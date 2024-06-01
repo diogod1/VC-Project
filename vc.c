@@ -1433,14 +1433,14 @@ OVC *vc_binary_blob_labelling(IVC *src, IVC *dst, int *nlabels)
 	return blobs;
 }
 
-int vc_binary_blob_info(IVC *src, OVC *blobs, int nblobs)
+int vc_binary_blob_info(IVC *src, OVC *blobs, int nblobs, int areaRelevant, bool bSortAreaDesc)
 {
 	unsigned char *data = (unsigned char *)src->data;
 	int width = src->width;
 	int height = src->height;
 	int bytesperline = src->bytesperline;
 	int channels = src->channels;
-	int x, y, i;
+	int x, y, i, j = 0;
 	long int pos;
 	int xmin, ymin, xmax, ymax;
 	long int sumx, sumy;
@@ -1499,17 +1499,50 @@ int vc_binary_blob_info(IVC *src, OVC *blobs, int nblobs)
 			}
 		}
 
-		// Bounding Box
-		blobs[i].x = xmin;
-		blobs[i].y = ymin;
-		blobs[i].width = (xmax - xmin) + 1;
-		blobs[i].height = (ymax - ymin) + 1;
+		if(blobs[i].area > areaRelevant) {
+			// Bounding Box
+			blobs[j].x = xmin;
+			blobs[j].y = ymin;
+			blobs[j].width = (xmax - xmin) + 1;
+			blobs[j].height = (ymax - ymin) + 1;
 
-		// Centro de Gravidade
-		blobs[i].xc = sumx / MAX(blobs[i].area, 1);
-		blobs[i].yc = sumy / MAX(blobs[i].area, 1);
+			// Centro de Gravidade
+			blobs[j].xc = sumx / MAX(blobs[i].area, 1);
+			blobs[j].yc = sumy / MAX(blobs[i].area, 1);
+			j++;
+			continue;
+		}
+
+		// Se a área não for relevante
+		else if(!areaRelevant) {
+			// Bounding Box
+			blobs[i].x = xmin;
+			blobs[i].y = ymin;
+			blobs[i].width = (xmax - xmin) + 1;
+			blobs[i].height = (ymax - ymin) + 1;
+
+			// Centro de Gravidade
+			blobs[i].xc = sumx / MAX(blobs[i].area, 1);
+			blobs[i].yc = sumy / MAX(blobs[i].area, 1);
+		}
+		
 	}
 
+	if(bSortAreaDesc) {
+		for (int l = 0; l < j; l++)
+		{
+			for (int k = l + 1; k < j; k++)
+			{
+				if (blobs[l].area < blobs[k].area)
+				{
+					OVC temp = blobs[l];
+					blobs[l] = blobs[k];
+					blobs[k] = temp;
+				}
+			}
+		}	
+	}
+			
 	return 1;
 }
 
@@ -2054,10 +2087,8 @@ int vc_hsv_resistances_segmentation(IVC *src, IVC *dst, ImageColors *img_colors)
 	ColorRange colors[11] = {
 		{30, 55, 35, 64, 45, 90},	  // Corpo resistência
 		{0, 360, 0, 35, 0, 35},		  // Preto
-		{12, 30, 25, 50, 25, 50},	  // Castanho
-		//{11, 30, 25, 50, 25, 50},	  // Castanho
-		//{340, 10, 35, 75, 55, 100}, // Vermelho
-		{340, 11, 35, 75, 55, 100},	  // Vermelho
+		{12, 30, 20, 50, 20, 50},	  // Castanho
+		{340, 15, 50, 90, 50, 100},	  // Vermelho
 		{1, 22, 65, 100, 80, 100},	  // Laranja
 		{20, 35, 50, 100, 50, 100},	  // Amarelo
 		{75, 165, 30, 100, 30, 100},  // Verde
@@ -2243,258 +2274,27 @@ int vc_hsv_resistances_segmentation(IVC *src, IVC *dst, ImageColors *img_colors)
 	return 1;
 }
 
-ResistenceColorList vc_check_resistence_color(int xpos, int ypos, int width, int height, ImageColors *img_colors)
+ResistenceColorList vc_check_resistence_color(int xpos, int ypos, int width, int height, ImageColors *img_colors, int videoWidth)
 {
 	int nlabel;
 	ResistenceColorList ResColors = {0};
-	/*Fazer um for até atingir as 4 fitas*/
 
-	if (img_colors->vermelho->data != NULL)
-	{
+	for (int y = ypos; y < ypos + height; y++) {
+		for (int x = xpos; x < xpos + width; x++) {
+			if(x > xpos && x < xpos + width && y > ypos && y < ypos + height) {
+				int pos = y * videoWidth + x;
 
-		IVC *image_blob = vc_image_new(img_colors->vermelho->width, img_colors->vermelho->height, 1, 255);
-		OVC *blobs = vc_binary_blob_labelling(img_colors->vermelho, image_blob, &nlabel);
-		if (blobs != NULL)
-		{
-			vc_binary_blob_info(image_blob, blobs, nlabel);
-		}
-
-		for (int i = 0; i < nlabel; i++)
-		{
-			// Desconsiderar pequenos blobs
-			if (blobs[i].area < 100)
-			{
-				for (int y = blobs[i].y; y < blobs[i].y + blobs[i].height; y++) 
-				{
-					for (int x = blobs[i].x; x < blobs[i].x + blobs[i].width; x++)
-					{
-						int pos = y * 720 + x;
-						img_colors->vermelho->data[pos] = 0;
-					}
-				}
-				continue;
-			}
-			else if (blobs[i].xc > xpos && blobs[i].xc < xpos + width && blobs[i].yc > ypos && blobs[i].yc < ypos + height)
-			{
-				for (int y = ypos; y < ypos + height; y++) 
-				{
-					for (int x = xpos; x < xpos + width; x++)
-					{
-						ResColors.lista_vermelho += 1;
-					}
-				}
+				if(img_colors->vermelho->data[pos] == 255) ResColors.lista_vermelho++;
+				else if(img_colors->azul->data[pos] == 255)  ResColors.lista_azul++;
+				else if(img_colors->verde->data[pos] == 255) ResColors.lista_verde++;
+				else if (img_colors->castanho->data[pos] == 255) ResColors.lista_castanho++;
+				else if (img_colors->preto->data[pos] == 255) ResColors.lista_preto++;
+				else if (img_colors->laranja->data[pos] == 255) ResColors.lista_laranja++;
+				//else if(img_colors->amarelo->data[pos] = 255) ResColors.lista_amarelo++;
 			}
 		}
-
-		free(blobs);
-		vc_image_free(image_blob);
 	}
-
-	if (img_colors->azul->data != NULL)
-	{
-
-		IVC *image_blob = vc_image_new(img_colors->azul->width, img_colors->azul->height, 1, 255);
-		OVC *blobs = vc_binary_blob_labelling(img_colors->azul, image_blob, &nlabel);
-		if (blobs != NULL)
-		{
-			vc_binary_blob_info(image_blob, blobs, nlabel);
-		}
-
-		for (int i = 0; i < nlabel; i++)
-		{
-			// Desconsiderar pequenos blobs
-			if (blobs[i].area < 200)
-			{
-				/* for (int y = blobs[i].y; y < blobs[i].y + blobs[i].height; y++) 
-				{
-					for (int x = blobs[i].x; x < blobs[i].x + blobs[i].width; x++)
-					{
-						int pos = y * 720 + x;
-						img_colors->azul->data[pos] = 0;
-					}
-				} */
-				continue;
-			}
-			else if (blobs[i].xc > xpos && blobs[i].xc < xpos + width && blobs[i].yc > ypos && blobs[i].yc < ypos + height)
-			{
-				for (int y = ypos; y < ypos + blobs[i].height; y++) 
-				{
-					for (int x = xpos; x < xpos + blobs[i].width; x++)
-					{
-						ResColors.lista_azul += 1;
-					}
-				}
-			}
-		}
-
-		free(blobs);
-		vc_image_free(image_blob);
-	}
-
-	if (img_colors->verde->data != NULL)
-	{
-
-		IVC *image_blob = vc_image_new(img_colors->verde->width, img_colors->verde->height, 1, 255);
-		OVC *blobs = vc_binary_blob_labelling(img_colors->verde, image_blob, &nlabel);
-		if (blobs != NULL)
-		{
-			vc_binary_blob_info(image_blob, blobs, nlabel);
-		}
-
-		for (int i = 0; i < nlabel; i++)
-		{
-			// Desconsiderar pequenos blobs
-			if (blobs[i].area < 200)
-			{
-				/* for (int y = blobs[i].y; y < blobs[i].y + blobs[i].height; y++) 
-				{
-					for (int x = blobs[i].x; x < blobs[i].x + blobs[i].width; x++)
-					{
-						int pos = y * 720 + x;
-						img_colors->verde->data[pos] = 0;
-					}
-				} */
-				continue;
-			}
-			else if (blobs[i].xc > xpos && blobs[i].xc < xpos + width && blobs[i].yc > ypos && blobs[i].yc < ypos + height)
-			{
-				for (int y = ypos; y < ypos + blobs[i].height; y++) 
-				{
-					for (int x = xpos; x < xpos + blobs[i].width; x++)
-					{
-						ResColors.lista_verde += 1;
-					}
-				}
-			}
-		}
-
-		free(blobs);
-		vc_image_free(image_blob);
-	}
-
-	if (img_colors->castanho->data != NULL)
-	{
-
-		IVC *image_blob = vc_image_new(img_colors->castanho->width, img_colors->castanho->height, 1, 255);
-		OVC *blobs = vc_binary_blob_labelling(img_colors->castanho, image_blob, &nlabel);
-		if (blobs != NULL)
-		{
-			vc_binary_blob_info(image_blob, blobs, nlabel);
-		}
-
-		for (int i = 0; i < nlabel; i++)
-		{
-			// Desconsiderar pequenos blobs
-			if (blobs[i].area < 200)
-			{
-				/* for (int y = blobs[i].y; y < blobs[i].y + blobs[i].height; y++) 
-				{
-					for (int x = blobs[i].x; x < blobs[i].x + blobs[i].width; x++)
-					{
-						int pos = y * 720 + x;
-						img_colors->castanho->data[pos] = 0;
-					}
-				} */
-				continue;
-			}
-			else if (blobs[i].xc > xpos && blobs[i].xc < xpos + width && blobs[i].yc > ypos && blobs[i].yc < ypos + height)
-			{
-				for (int y = ypos; y < ypos + blobs[i].height; y++) 
-				{
-					for (int x = xpos; x < xpos + blobs[i].width; x++)
-					{
-						ResColors.lista_castanho += 1;
-					}
-				}
-			}
-		}
-
-		free(blobs);
-		vc_image_free(image_blob);
-	}
-
-	if (img_colors->preto->data != NULL)
-	{
-
-		IVC *image_blob = vc_image_new(img_colors->preto->width, img_colors->preto->height, 1, 255);
-		OVC *blobs = vc_binary_blob_labelling(img_colors->preto, image_blob, &nlabel);
-		if (blobs != NULL)
-		{
-			vc_binary_blob_info(image_blob, blobs, nlabel);
-		}
-
-		for (int i = 0; i < nlabel; i++)
-		{
-			// Desconsiderar pequenos blobs
-			if (blobs[i].area < 200)
-			{
-				/* for (int y = blobs[i].y; y < blobs[i].y + blobs[i].height; y++) 
-				{
-					for (int x = blobs[i].x; x < blobs[i].x + blobs[i].width; x++)
-					{
-						int pos = y * 720 + x;
-						img_colors->preto->data[pos] = 0;
-					}
-				} */
-				continue;
-			}
-			else if (blobs[i].xc > xpos && blobs[i].xc < xpos + width && blobs[i].yc > ypos && blobs[i].yc < ypos + height)
-			{
-				for (int y = ypos; y < ypos + height; y++) 
-				{
-					for (int x = xpos; x < xpos + width; x++)
-					{
-						ResColors.lista_preto += 1;
-					}
-				}
-			}
-		}
-
-		free(blobs);
-		vc_image_free(image_blob);
-	}
-
-	if (img_colors->laranja->data != NULL)
-	{
-
-		IVC *image_blob = vc_image_new(img_colors->laranja->width, img_colors->laranja->height, 1, 255);
-		OVC *blobs = vc_binary_blob_labelling(img_colors->laranja, image_blob, &nlabel);
-		if (blobs != NULL)
-		{
-			vc_binary_blob_info(image_blob, blobs, nlabel);
-		}
-
-		for (int i = 0; i < nlabel; i++)
-		{
-			// Desconsiderar pequenos blobs
-			if (blobs[i].area < 200)
-			{
-				/* for (int y = blobs[i].y; y < blobs[i].y + blobs[i].height; y++) 
-				{
-					for (int x = blobs[i].x; x < blobs[i].x + blobs[i].width; x++)
-					{
-						int pos = y * 720 + x;
-						img_colors->laranja->data[pos] = 0;
-					}
-				} */
-				continue;
-			}
-			else if (blobs[i].xc > xpos && blobs[i].xc < xpos + width && blobs[i].yc > ypos && blobs[i].yc < ypos + height)
-			{
-				for (int y = ypos; y < ypos + height; y++) 
-				{
-					for (int x = xpos; x < xpos + width; x++)
-					{
-						ResColors.lista_laranja += 1;
-					}
-				}
-			}
-		}
-
-		free(blobs);
-		vc_image_free(image_blob);
-	}
-
+	
 	return ResColors;
 }
 
@@ -2578,7 +2378,7 @@ void calcularResistenciaTotal(CorContagemImagem *cores)
 		image_temp = vc_image_new(cores[i].imagem->width, cores[i].imagem->height, 1, 255);
 		OVC *blobs = vc_binary_blob_labelling(cores[i].imagem, image_temp, &nlabel);
 		if (blobs != NULL)
-			vc_binary_blob_info(image_temp, blobs, nlabel);
+			vc_binary_blob_info(image_temp, blobs, nlabel, 0, false);
 
 		minXs[i] = INT_MAX; // Inicializa com o maior valor possível
 
@@ -2638,12 +2438,6 @@ void calcularResistenciaTotal(CorContagemImagem *cores)
  */
 }
 
-int compare_cor(const void *a, const void *b)
-{
-	CorContagemImagem *corA = (CorContagemImagem *)a;
-	CorContagemImagem *corB = (CorContagemImagem *)b;
-	return corB->contagem - corA->contagem; // Ordenação decrescente
-}
 
 bool vc_check_resistence_body(int xpos, int ypos, int width, int height, IVC *image)
 {
@@ -2655,8 +2449,7 @@ bool vc_check_resistence_body(int xpos, int ypos, int width, int height, IVC *im
 		OVC *blobs = vc_binary_blob_labelling(image, image_blob, &nlabel);
 		if (blobs != NULL)
 		{
-			if(videoFrame == 660) vc_write_image("../../frame654_blobs.pgm", image);
-			vc_binary_blob_info(image_blob, blobs, nlabel);
+			vc_binary_blob_info(image_blob, blobs, nlabel, 0, false);
 		}
 
 		for(int i=0;i<nlabel;i++){
@@ -2673,4 +2466,323 @@ bool vc_check_resistence_body(int xpos, int ypos, int width, int height, IVC *im
 		
 	}
 	return result;
+}
+
+void swap_cores(CorContagemImagem* cor1, CorContagemImagem* cor2) {
+    CorContagemImagem temp = *cor1;  // Usa uma variável temporária para armazenar o conteúdo de cor1
+    *cor1 = *cor2;                   // Copia o conteúdo de cor2 para onde cor1 aponta
+    *cor2 = temp;                    // Copia o conteúdo da variável temporária (original cor1) para onde cor2 aponta
+}
+
+void swap_blobs(OVC** blob1, OVC** blob2) {
+    OVC* temp = *blob1;
+    *blob1 = *blob2;
+    *blob2 = temp;
+}
+
+OVC *vc_binary_blob_labelling_custom(IVC *src, IVC *dst, int *nlabels, int xpos, int ypos, int blobWidth, int blobHeight)
+{
+	unsigned char *datasrc = (unsigned char *)src->data;
+	unsigned char *datadst = (unsigned char *)dst->data;
+	int width = src->width;
+	int height = src->height;
+	int bytesperline = src->bytesperline;
+	int channels = src->channels;
+	int x, y, a, b;
+	long int i, size;
+	long int posX, posA, posB, posC, posD;
+	int labeltable[1024] = {0};
+	int labelarea[1024] = {0};
+	int label = 1; // Etiqueta inicial.
+	int num, tmplabel;
+	OVC *blobs; // Apontador para array de blobs (objectos) que será retornado desta função.
+
+	// Verificação de erros
+	if ((src->width <= 0) || (src->height <= 0) || (src->data == NULL))
+		return 0;
+	if ((src->width != dst->width) || (src->height != dst->height) || (src->channels != dst->channels))
+		return NULL;
+	if (channels != 1)
+		return NULL;
+
+	// Copia dados da imagem binária para imagem grayscale
+	memcpy(datadst, datasrc, bytesperline * height);
+
+	// Todos os pixeis de plano de fundo devem obrigatoriamente ter valor 0
+	// Todos os pixeis de primeiro plano devem obrigatoriamente ter valor 255
+	// Serão atribuidas etiquetas no intervalo [1,254]
+	// Este algoritmo esta assim limitado a 254 labels
+	for (i = 0, size = bytesperline * height; i < size; i++)
+	{
+		if (datadst[i] != 0)
+			datadst[i] = 255;
+	}
+
+	// Limpa os rebordos da imagem binária
+	for (y = 0; y < height; y++)
+	{
+		datadst[y * bytesperline + 0 * channels] = 0;
+		datadst[y * bytesperline + (width - 1) * channels] = 0;
+	}
+
+	for (x = 0; x < width; x++)
+	{
+		datadst[0 * bytesperline + x * channels] = 0;
+		datadst[(height - 1) * bytesperline + x * channels] = 0;
+	}
+
+	// Efectua a etiquetagem
+	for (y = ypos + 1; y < blobHeight + ypos - 1; y++)
+	{
+		for (x = xpos + 1; x < blobWidth + xpos - 1; x++)
+		{
+			// Kernel:
+			// A B C
+			// D X
+
+			posA = (y - 1) * bytesperline + (x - 1) * channels; // A
+			posB = (y - 1) * bytesperline + x * channels;		// B
+			posC = (y - 1) * bytesperline + (x + 1) * channels; // C
+			posD = y * bytesperline + (x - 1) * channels;		// D
+			posX = y * bytesperline + x * channels;				// X
+
+			// Se o pixel foi marcado
+			if (datadst[posX] != 0)
+			{
+				if ((datadst[posA] == 0) && (datadst[posB] == 0) && (datadst[posC] == 0) && (datadst[posD] == 0))
+				{
+					datadst[posX] = label;
+					labeltable[label] = label;
+					label++;
+				}
+				else
+				{
+					num = 255;
+
+					// Se A est  marcado
+					if (datadst[posA] != 0)
+						num = labeltable[datadst[posA]];
+					// Se B est  marcado, e   menor que a etiqueta "num"
+					if ((datadst[posB] != 0) && (labeltable[datadst[posB]] < num))
+						num = labeltable[datadst[posB]];
+					// Se C est  marcado, e   menor que a etiqueta "num"
+					if ((datadst[posC] != 0) && (labeltable[datadst[posC]] < num))
+						num = labeltable[datadst[posC]];
+					// Se D est  marcado, e   menor que a etiqueta "num"
+					if ((datadst[posD] != 0) && (labeltable[datadst[posD]] < num))
+						num = labeltable[datadst[posD]];
+
+					// Atribui a etiqueta ao pixel
+					datadst[posX] = num;
+					labeltable[num] = num;
+
+					// Actualiza a tabela de etiquetas
+					if (datadst[posA] != 0)
+					{
+						if (labeltable[datadst[posA]] != num)
+						{
+							for (tmplabel = labeltable[datadst[posA]], a = 1; a < label; a++)
+							{
+								if (labeltable[a] == tmplabel)
+								{
+									labeltable[a] = num;
+								}
+							}
+						}
+					}
+
+					if (datadst[posB] != 0)
+					{
+						if (labeltable[datadst[posB]] != num)
+						{
+							for (tmplabel = labeltable[datadst[posB]], a = 1; a < label; a++)
+							{
+								if (labeltable[a] == tmplabel)
+								{
+									labeltable[a] = num;
+								}
+							}
+						}
+					}
+
+					if (datadst[posC] != 0)
+					{
+						if (labeltable[datadst[posC]] != num)
+						{
+							for (tmplabel = labeltable[datadst[posC]], a = 1; a < label; a++)
+							{
+								if (labeltable[a] == tmplabel)
+								{
+									labeltable[a] = num;
+								}
+							}
+						}
+					}
+
+					if (datadst[posD] != 0)
+					{
+						if (labeltable[datadst[posD]] != num)
+						{
+							for (tmplabel = labeltable[datadst[posD]], a = 1; a < label; a++)
+							{
+								if (labeltable[a] == tmplabel)
+								{
+									labeltable[a] = num;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Volta a etiquetar a imagem
+	for (y = ypos + 1; y < blobHeight + ypos - 1; y++)
+	{
+		for (x = xpos + 1; x < blobWidth + xpos - 1; x++)
+		{
+			posX = y * bytesperline + x * channels; // X
+
+			if (datadst[posX] != 0)
+			{
+				datadst[posX] = labeltable[datadst[posX]];
+			}
+		}
+	}
+
+	// Contagem do número de blobs
+	// Passo 1: Eliminar, da tabela, etiquetas repetidas
+	for (a = 1; a < label - 1; a++)
+	{
+		for (b = a + 1; b < label; b++)
+		{
+			if (labeltable[a] == labeltable[b])
+				labeltable[b] = 0;
+		}
+	}
+
+	// Passo 2: Conta etiquetas e organiza a tabela de etiquetas, para que não hajam valores vazios (zero) entre etiquetas
+	*nlabels = 0;
+	for (a = 1; a < label; a++)
+	{
+		if (labeltable[a] != 0)
+		{
+			labeltable[*nlabels] = labeltable[a]; // Organiza tabela de etiquetas
+			(*nlabels)++;						  // Conta etiquetas
+		}
+	}
+
+	// Se não ha blobs
+	if (*nlabels == 0)
+		return NULL;
+
+	// Cria lista de blobs (objectos) e preenche a etiqueta
+	blobs = (OVC *)calloc((*nlabels), sizeof(OVC));
+	if (blobs != NULL)
+	{
+		for (a = 0; a < (*nlabels); a++)
+			blobs[a].label = labeltable[a];
+	}
+	else
+		return NULL;
+
+	return blobs;
+}
+
+int vc_binary_blob_info_custom(IVC *src, OVC *blobs, int nblobs, int areaRelevant, int xpos, int ypos, int blobWidth, int blobHeight)
+{
+	unsigned char *data = (unsigned char *)src->data;
+	int width = src->width;
+	int height = src->height;
+	int bytesperline = src->bytesperline;
+	int channels = src->channels;
+	int x, y, i, j = 0;
+	long int pos;
+	int xmin, ymin, xmax, ymax;
+	long int sumx, sumy;
+
+	// Verificação de erros
+	if ((src->width <= 0) || (src->height <= 0) || (src->data == NULL))
+		return 0;
+	if (channels != 1)
+		return 0;
+
+	// Conta área de cada blob
+	for (i = 0; i < nblobs; i++)
+	{
+		xmin = xpos - 1;
+		ymin = ypos - 1;
+		xmax = 0;
+		ymax = 0;
+
+		sumx = 0;
+		sumy = 0;
+
+		blobs[i].area = 0;
+
+		for (y = ypos + 1; y < ypos + blobHeight - 1; y++)
+		{
+			for (x = xpos + 1; x < xpos + blobWidth - 1; x++)
+			{
+				pos = y * bytesperline + x * channels;
+
+				if (data[pos] == blobs[i].label)
+				{
+					// área
+					blobs[i].area++;
+
+					// Centro de Gravidade
+					sumx += x;
+					sumy += y;
+
+					// Bounding Box
+					if (xmin > x)
+						xmin = x;
+					if (ymin > y)
+						ymin = y;
+					if (xmax < x)
+						xmax = x;
+					if (ymax < y)
+						ymax = y;
+
+					// Perímetro
+					// Se pelo menos um dos quatro vizinhos não pertence ao mesmo label, então é um pixel de contorno
+					if ((data[pos - 1] != blobs[i].label) || (data[pos + 1] != blobs[i].label) || (data[pos - bytesperline] != blobs[i].label) || (data[pos + bytesperline] != blobs[i].label))
+					{
+						blobs[i].perimeter++;
+					}
+				}
+			}
+		}
+
+		if(blobs[i].area > areaRelevant) {
+			// Bounding Box
+			blobs[j].x = xmin;
+			blobs[j].y = ymin;
+			blobs[j].width = (xmax - xmin) + 1;
+			blobs[j].height = (ymax - ymin) + 1;
+
+			// Centro de Gravidade
+			blobs[j].xc = sumx / MAX(blobs[i].area, 1);
+			blobs[j].yc = sumy / MAX(blobs[i].area, 1);
+			j++;
+			continue;
+		}
+
+		// Se a área não for relevante
+		else if(!areaRelevant) {
+			// Bounding Box
+			blobs[i].x = xmin;
+			blobs[i].y = ymin;
+			blobs[i].width = (xmax - xmin) + 1;
+			blobs[i].height = (ymax - ymin) + 1;
+
+			// Centro de Gravidade
+			blobs[i].xc = sumx / MAX(blobs[i].area, 1);
+			blobs[i].yc = sumy / MAX(blobs[i].area, 1);
+		}
+	}
+			
+	return 1;
 }

@@ -23,91 +23,69 @@ void vc_timer(void) {
 		std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
 		std::chrono::steady_clock::duration elapsedTime = currentTime - previousTime;
 
-		// Tempo em segundos.
 		std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(elapsedTime);
 		double nseconds = time_span.count();
 
 		std::cout << "Tempo decorrido: " << nseconds << "segundos" << std::endl;
-		//std::cout << "Pressione qualquer tecla para continuar...\n";
-		//std::cin.get();
 	}
 }
 
-
 int main(void) {
-	// V�deo
 	char videofile[100] = "../../video_resistors.mp4";
 	cv::VideoCapture capture;
-	struct
-	{
-		int width, height;
-		int ntotalframes;
-		int fps;
-		int nframe;
-	} video;
-	// Outros
+	
+	Video video;
 	std::string str;
 	int key = 0;
 
-	/* Leitura de v�deo de um ficheiro */
-	/* NOTA IMPORTANTE:
-	O ficheiro video.avi dever� estar localizado no mesmo direct�rio que o ficheiro de c�digo fonte.
-	*/
 	capture.open(videofile);
 
-	/* Em alternativa, abrir captura de v�deo pela Webcam #0 */
-	//capture.open(0, cv::CAP_DSHOW); // Pode-se utilizar apenas capture.open(0);
-
-	/* Verifica se foi possível abrir o ficheiro de vídeo */
 	if (!capture.isOpened())
 	{
 		std::cerr << "Erro ao abrir o ficheiro de vídeo!\n";
 		return 1;
 	}
 
-	/* N�mero total de frames no v�deo */
 	video.ntotalframes = (int)capture.get(cv::CAP_PROP_FRAME_COUNT);
-	/* Frame rate do v�deo */
 	video.fps = (int)capture.get(cv::CAP_PROP_FPS);
-	/* Resolu��o do v�deo */
-	videoWidth = (int)capture.get(cv::CAP_PROP_FRAME_WIDTH);
-	videoHeight = (int)capture.get(cv::CAP_PROP_FRAME_HEIGHT);
 	video.width = (int)capture.get(cv::CAP_PROP_FRAME_WIDTH);
 	video.height = (int)capture.get(cv::CAP_PROP_FRAME_HEIGHT);
 
-	/* Cria uma janela para exibir o v�deo */
+	// Cria uma janela para exibir o vídeo
 	cv::namedWindow("VC - VIDEO", cv::WND_PROP_AUTOSIZE);
+	cv::namedWindow("VC - MASK", cv::WND_PROP_AUTOSIZE);
 
-	/* Inicia o timer */
+	// Inicia o timer
 	vc_timer();
 
-    /*
-	// Cria uma nova imagem IVC
-	*/
+	// Criação das imagens IVC - TODO: nomes melhores em vez de 2,3,4,6...
 	IVC *image = vc_image_new(video.width, video.height, 3, 255);
 	IVC *image_2 = vc_image_new(video.width, video.height, 3, 255);
 	IVC *image_3 = vc_image_new(video.width, video.height, 1, 255);
 	IVC *image_4 = vc_image_new(video.width, video.height, 1, 255);
 	IVC *image_6 = vc_image_new(video.width, video.height, 1, 255);
+	IVC *imageBlobPrimeiraCor = vc_image_new(video.width, video.height, 1, 255);
+	IVC *imageBlobSegundaCor = vc_image_new(video.width, video.height, 1, 255);
+	IVC *imageBlobTerceiraCor = vc_image_new(video.width, video.height, 1, 255);
 
+	// Alocação de memória e criação das imagens para as cores presentes no frame
 	ImageColors *img_colors = (ImageColors *)malloc(sizeof(ImageColors));
-
 	vc_initialize_colors(video.width,video.height,img_colors,1,255);
 
 	cv::Mat frame;
+	cv::Mat frame2;
 	while (key != 'q') {
-		/* Leitura de uma frame do v�deo */
+		// Leitura de uma frame do vídeo
 		capture.read(frame);
+		capture.read(frame2);
 
-		/* Verifica se conseguiu ler a frame */
+		// Verifica se conseguiu ler a frame
 		if (frame.empty()) break;
-
-		/* N�mero da frame a processar */
+		
 		video.nframe = (int)capture.get(cv::CAP_PROP_POS_FRAMES);
-		videoFrame = video.nframe;
 
-		//if(video.nframe < 160) continue;
-		// Copia dados de imagem da estrutura cv::Mat para uma estrutura IVC
+		if(video.nframe < 500) continue;
+		// Cópia dados de imagem da estrutura cv::Mat para uma estrutura IVC
 		memcpy(image->data, frame.data, video.width * video.height * 3);
 
 		// Executa uma fun��o da nossa biblioteca vc
@@ -126,7 +104,7 @@ int main(void) {
 		vc_binary_open(img_colors->laranja,img_colors->laranja,1,3);
 		vc_binary_open(img_colors->preto,img_colors->preto,1,3); */
 
-		
+		// Ver se podemos tirar depois
 		vc_binary_open(img_colors->azul,img_colors->azul,1,3);
 		vc_binary_open(img_colors->castanho,img_colors->castanho,1,3);
 		
@@ -134,20 +112,20 @@ int main(void) {
 		int nlabel;
 		OVC *blobs = vc_binary_blob_labelling(image_3, image_6, &nlabel);
 		if(blobs != NULL)
-			vc_binary_blob_info(image_6, blobs, nlabel);
+			vc_binary_blob_info(image_6, blobs, nlabel, 0, false);
 
 		ResistenceColorList ResColors;
 		for (int i = 0; i < nlabel; i++){
 			// filtrar apenas pelas resistências para o calculo dos ohms
-		 	if(blobs[i].area < 3500 || blobs[i].area > 10000){
+		 	if(blobs[i].area < 6000 || blobs[i].area > 10000){
 				continue;
 			}
 
-			ResColors = {0};
-			/*Criar função check para verificar se há resitencias-- correr blob*/
+			//ResColors = {0};
+			// check para verificar se há resitencias-- correr blob
 			bool resitence_check = vc_check_resistence_body(blobs[i].x, blobs[i].y ,blobs[i].width, blobs[i].height, img_colors->corpo);
 			if(resitence_check == true){
-				ResColors = vc_check_resistence_color(blobs[i].x, blobs[i].y ,blobs[i].width, blobs[i].height, img_colors);
+				ResColors = vc_check_resistence_color(blobs[i].x, blobs[i].y ,blobs[i].width, blobs[i].height, img_colors, video.width);
 			}else{
 				continue;
 			}
@@ -180,16 +158,108 @@ int main(void) {
 			}
 
 			// 2 cores iguais
-			if(cores[2].contagem < 400) {
+			if(cores[2].contagem < 200) {
 				cores[2] = cores[0];
 			}
 
 			// 3 cores iguais
-			if(cores[1].contagem < 400) {
+			if(cores[1].contagem < 200) {
 				cores[1] = cores[0];
 			}
 
-			// Encontra o pixel mais à esquerda de cada risca/cor da resistência
+			int nlabelCores;
+			OVC *blobsPrimeiraCor = vc_binary_blob_labelling_custom(cores[0].imagem, imageBlobPrimeiraCor, &nlabelCores, blobs[i].x, blobs[i].y, blobs[i].width, blobs[i].height);
+			if(blobsPrimeiraCor != NULL)
+				vc_binary_blob_info_custom(imageBlobPrimeiraCor, blobsPrimeiraCor, nlabelCores, 300, blobs[i].x, blobs[i].y, blobs[i].width, blobs[i].height);
+
+			OVC *blobsSegundaCor = vc_binary_blob_labelling_custom(cores[1].imagem, imageBlobSegundaCor, &nlabelCores, blobs[i].x, blobs[i].y, blobs[i].width, blobs[i].height);
+			if(blobsSegundaCor != NULL)
+				vc_binary_blob_info_custom(imageBlobSegundaCor, blobsSegundaCor, nlabelCores, 300, blobs[i].x, blobs[i].y, blobs[i].width, blobs[i].height);
+
+			OVC *blobsTerceiraCor = vc_binary_blob_labelling_custom(cores[2].imagem, imageBlobTerceiraCor, &nlabelCores, blobs[i].x, blobs[i].y, blobs[i].width, blobs[i].height);
+			if(blobsTerceiraCor != NULL)
+				vc_binary_blob_info_custom(imageBlobTerceiraCor, blobsTerceiraCor, nlabelCores, 300, blobs[i].x, blobs[i].y, blobs[i].width, blobs[i].height);
+
+			// não há blobs
+			if(blobsPrimeiraCor == NULL || blobsSegundaCor == NULL || blobsTerceiraCor == NULL) continue;
+
+			if(blobsPrimeiraCor->xc > blobsSegundaCor->xc) {
+				swap_cores(&(cores[0]), &(cores[1]));
+				swap_blobs(&blobsPrimeiraCor, &blobsSegundaCor);
+			} 
+			if(blobsSegundaCor->xc > blobsTerceiraCor->xc) {
+				swap_cores(&(cores[1]), &(cores[2]));
+				swap_blobs(&blobsSegundaCor, &blobsTerceiraCor);
+			} 
+			if(blobsPrimeiraCor->xc > blobsSegundaCor->xc) {
+				swap_cores(&(cores[0]), &(cores[1]));
+				swap_blobs(&blobsPrimeiraCor, &blobsSegundaCor);
+			}
+
+			cv::Mat imageToShow = cv::Mat(img_colors->vermelho->height, img_colors->vermelho->width, CV_8UC3);
+			for (int y = 0; y < img_colors->vermelho->height; y++) {
+				for (int x = 0; x < img_colors->vermelho->width; x++) {
+					uchar value3 = img_colors->vermelho->data[y * img_colors->vermelho->width + x] == 255 ? 255 : 0;
+					uchar value = 0;
+					uchar value2 = 0;
+
+					value2 = img_colors->verde->data[y * img_colors->vermelho->width + x] == 255 ? 255 : 0;
+					value = img_colors->azul->data[y * img_colors->vermelho->width + x] == 255 ? 255 : 0;
+
+					if(img_colors->castanho->data[y * img_colors->vermelho->width + x] == 255) {
+						value = 140;
+						value3 = 210;
+						value2 = 180;
+					}
+
+					else if(img_colors->preto->data[y * img_colors->vermelho->width + x] == 255) {
+						value = 211;
+						value3 = 211;
+						value2 = 211;
+					}
+
+					else if(img_colors->laranja->data[y * img_colors->vermelho->width + x] == 255) {
+						value = 0;
+						value3 = 255;
+						value2 = 165;
+					}
+					
+					imageToShow.at<cv::Vec3b>(y, x) = cv::Vec3b(value, value2, value3); // Replicar valor para os três canais
+				}
+			}
+			memcpy(frame2.data, imageToShow.data, video.width * video.height * 3);
+			
+
+			/* int nlabelCores;
+			OVC *blobsCores[3]; // Array para armazenar os blobs de cada cor
+
+			for (int l = 0; l < 3; l++) {
+				IVC *imageBlobCor = vc_image_new(video.width, video.height, 1, 255);
+				blobsCores[l] = vc_binary_blob_labelling(cores[l].imagem, imageBlobCor, &nlabelCores);
+				
+				if (blobsCores[l] != NULL) {
+					vc_binary_blob_info(imageBlobCor, blobsCores[l], nlabelCores, true);
+				}
+			} */
+
+/* 			// Ordena as resistências pelo que está no vídeo ( esquerda para a direita )
+			for (int l = 0; l < 3; l++)
+			{
+				for (int k = l + 1; k < 3; k++)
+				{
+					if (blobsCores[l]->xc > blobsCores[k]->xc)
+					{
+						CorContagemImagem corTemp = cores[l];
+						OVC *blobTemp = blobsCores[l];
+						cores[l] = cores[k];
+						cores[k] = corTemp;
+						blobsCores[l] = blobsCores[k];
+						blobsCores[k] = blobTemp;
+					}
+				}
+			} */
+
+			/* // Encontra o pixel mais à esquerda de cada risca/cor da resistência
 			for (int y = blobs[i].y; y < blobs[i].y + blobs[i].height; y++) 
 			{
 				for (int x = blobs[i].x; x < blobs[i].x + blobs[i].width; x++) 
@@ -205,12 +275,12 @@ int main(void) {
 						if(x < cores[2].xmin ) cores[2].xmin = x;
 					}
 				}
-			}
+			} */
 
-			if(video.nframe == 340) vc_write_image("../../castanho.pgm", img_colors->castanho);
-			if(video.nframe == 340) vc_write_image("../../vermelho.pgm", img_colors->vermelho);
+/* 			if(video.nframe == 340) vc_write_image("../../castanho.pgm", img_colors->castanho);
+			if(video.nframe == 340) vc_write_image("../../vermelho.pgm", img_colors->vermelho); */
 
-			// Ordena as resistências pelo que está no vídeo ( esquerda para a direita )
+/* 			// Ordena as resistências pelo que está no vídeo ( esquerda para a direita )
 			for (int l = 0; l < 3; l++)
 			{
 				for (int k = l + 1; k < 3; k++)
@@ -222,7 +292,7 @@ int main(void) {
 						cores[k] = temp;
 					}
 				}
-			}
+			} */
 
 			char fullString[3];
 			fullString[0] = cores[0].digito;
@@ -231,6 +301,8 @@ int main(void) {
 			int valor = atoi(fullString) * cores[2].multiplicador;
 			
 			str = std::to_string(valor) + "-Ohms";
+			int debug = 0;
+			if(debug) cv::imshow("VC - MASK", frame2);
 			//cv::putText(frame, str, cv::Point(blobs[i].x, blobs[i].y - 5), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 0, 0), 2);
 			cv::putText(frame, str, cv::Point(blobs[i].x, blobs[i].y - 5), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255, 0, 0), 2);
 
@@ -262,6 +334,7 @@ int main(void) {
 
 		/* Exibe a frame */
 		cv::imshow("VC - VIDEO", frame);
+		cv::imshow("VC - MASK", frame2);
 
 		/* Sai da aplica��o, se o utilizador premir a tecla 'q' */
 		key = cv::waitKey(1);
@@ -284,6 +357,7 @@ int main(void) {
 
 	/* Fecha a janela */
 	cv::destroyWindow("VC - VIDEO");
+	cv::destroyWindow("VC - MASK");
 
 	/* Fecha o ficheiro de v�deo */
 	capture.release();

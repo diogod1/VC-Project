@@ -7,21 +7,30 @@
 //             [  DUARTE DUQUE - dduque@ipca.pt  ]
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-
 #define VC_DEBUG
 #define MAX(a, b) (a > b ? a : b)
 #define MIN(a, b) (a < b ? a : b)
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//                   ESTRUTURA DE UMA IMAGEM
+//                   ESTRUTURA DE UM VÍDEO
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+typedef struct {
+	int width, height;
+	int ntotalframes;
+	int fps;
+	int nframe;
+} Video;
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//                   ESTRUTURA DE UMA IMAGEM
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 typedef struct {
 	unsigned char *data;
 	int width, height;
-	int channels;			// Bin�rio/Cinzentos=1; RGB=3
-	int levels;				// Bin�rio=1; Cinzentos [1,255]; RGB [1,255]
+	int channels;			// Binário/Cinzentos=1; RGB=3
+	int levels;				// Binário=1; Cinzentos [1,255]; RGB [1,255]
 	int bytesperline;		// width * channels
 } IVC;
 
@@ -31,12 +40,15 @@ typedef struct {
 
 typedef struct {
 	int x, y, width, height;	// Caixa Delimitadora (Bounding Box)
-	int area;					// �rea
+	int area;					// Área
 	int xc, yc;					// Centro-de-massa
 	int perimeter;				// Per�metro
 	int label;					// Etiqueta
-    int potencia;
 } OVC;
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//                   ESTRUTURA DA CONFIGURAÇÃO DE CORES
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 typedef struct {
     int minHue;
@@ -46,6 +58,10 @@ typedef struct {
     int minValue;
     int maxValue;
 } ColorRange;
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//                   ESTRUTURA DAS CORES PRESENTES NO FRAME
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 typedef struct {
     IVC *corpo;
@@ -61,6 +77,10 @@ typedef struct {
     IVC *branco;
 } ImageColors;
 
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//                   ESTRUTURA DOS CONTADORES DAS CORES NO FRAME
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 typedef struct {
     int lista_preto;
     int lista_castanho;
@@ -75,27 +95,12 @@ typedef struct {
 } ResistenceColorList;
 
 typedef struct {
-    unsigned int multiplicador;
+    int multiplicador;
     char digito;
     int contagem;
     IVC *imagem;
     int xmin;
 } CorContagemImagem;
-
-typedef struct {
-    int x;
-    int y;
-    int valor;
-} TextOutput;
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//                   VARIÁVEIS GLOBAIS
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-int videoWidth;
-int videoHeight;
-int videoFrame;
-
-int debug;
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //                    PROT�TIPOS DE FUN��ES
@@ -127,7 +132,7 @@ int vc_binary_erode(IVC *src, IVC *dst, int kernel);
 int vc_binary_open(IVC *src, IVC *dst, int kernelErode, int kernelDilate);
 int vc_binary_close(IVC *src, IVC *dst, int kernelErode, int kernelDilate);
 OVC* vc_binary_blob_labelling(IVC *src, IVC *dst, int *nlabels);
-int vc_binary_blob_info(IVC *src, OVC *blobs, int nblobs);
+int vc_binary_blob_info(IVC *src, OVC *blobs, int nblobs, int areaRelevant, bool bSortAreaDesc);
 int vc_blob_to_gray_scale(IVC *src, IVC *dst, int nlabels);
 int vc_draw_center_of_gravity(IVC *img, OVC *blob, int comp);
 int vc_draw_bounding_box(IVC *img, OVC *blob);
@@ -139,10 +144,13 @@ int vc_gray_lowpass_mean_filter(IVC *src, IVC *dst, int kernelsize);
 int compare(const void *a, const void *b);
 int vc_gray_lowpass_median_filter(IVC *src, IVC *dst, int kernelsize);
 int vc_bgr_to_rgb(IVC *src, IVC *dst);
-ResistenceColorList vc_check_resistence_color(int xpos, int ypos, int width, int height, ImageColors *img_colors);
+ResistenceColorList vc_check_resistence_color(int xpos, int ypos, int width, int height, ImageColors *img_colors, int videoWidth);
 void vc_initialize_colors(int width, int height, ImageColors *img_colors, int channels, int levels);
 void vc_memcpy_images_color(ImageColors *img_colors_src, ImageColors *img_colors_dst, int width, int height, int xpos, int ypos);
 void vc_free_images(ImageColors *img_colors);
 void calcularResistenciaTotal(CorContagemImagem *cores);
-int compare_cor(const void *a, const void *b);
 bool vc_check_resistence_body(int xpos, int ypos, int width, int height, IVC *image);
+void swap_cores(CorContagemImagem* cor1, CorContagemImagem* cor2);
+void swap_blobs(OVC** blob1, OVC** blob2);
+OVC *vc_binary_blob_labelling_custom(IVC *src, IVC *dst, int *nlabels, int xpos, int ypos, int blobWidth, int blobHeight);
+int vc_binary_blob_info_custom(IVC *src, OVC *blobs, int nblobs, int areaRelevant, int xpos, int ypos, int blobWidth, int blobHeight);
