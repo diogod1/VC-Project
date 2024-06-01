@@ -53,17 +53,15 @@ int main(void) {
 
 	// Cria uma janela para exibir o vídeo
 	cv::namedWindow("VC - VIDEO", cv::WND_PROP_AUTOSIZE);
-	//cv::namedWindow("VC - MASK", cv::WND_PROP_AUTOSIZE);
 
 	// Inicia o timer
 	vc_timer();
 
-	// Criação das imagens IVC - TODO: nomes melhores em vez de 2,3,4,6...
+	// Criação das imagens IVC 
 	IVC *image = vc_image_new(video.width, video.height, 3, 255);
-	IVC *image_2 = vc_image_new(video.width, video.height, 3, 255);
-	IVC *image_3 = vc_image_new(video.width, video.height, 1, 255);
-	IVC *image_4 = vc_image_new(video.width, video.height, 1, 255);
-	IVC *image_6 = vc_image_new(video.width, video.height, 1, 255);
+	IVC *image_rgb = vc_image_new(video.width, video.height, 3, 255);
+	IVC *image_res_segmented = vc_image_new(video.width, video.height, 1, 255);
+	IVC *image_res_blobs = vc_image_new(video.width, video.height, 1, 255);
 	IVC *imageBlobPrimeiraCor = vc_image_new(video.width, video.height, 1, 255);
 	IVC *imageBlobSegundaCor = vc_image_new(video.width, video.height, 1, 255);
 	IVC *imageBlobTerceiraCor = vc_image_new(video.width, video.height, 1, 255);
@@ -72,56 +70,56 @@ int main(void) {
 	ImageColors *img_colors = (ImageColors *)malloc(sizeof(ImageColors));
 	vc_initialize_colors(video.width,video.height,img_colors,1,255);
 
+	//Inicializar o contador das resistencias
+	std::vector<ContadorResistencia> contadorResistencia;
+
 	cv::Mat frame;
-	cv::Mat frame2;
+	cv::Mat frameFinal;
 	while (key != 'q') {
 		// Leitura de uma frame do vídeo
 		capture.read(frame);
-		//capture.read(frame2);
 
 		// Verifica se conseguiu ler a frame
 		if (frame.empty()) break;
 		
 		video.nframe = (int)capture.get(cv::CAP_PROP_POS_FRAMES);
 
-		if(video.nframe < 300) continue;
 		// Cópia dados de imagem da estrutura cv::Mat para uma estrutura IVC
 		memcpy(image->data, frame.data, video.width * video.height * 3);
 
 		// Executa uma fun��o da nossa biblioteca vc
-        vc_bgr_to_rgb(image,image_2);
-		if(video.nframe == 660) vc_write_image("../../frame9.pgm", image_2);
+        vc_bgr_to_rgb(image,image_rgb);
+
+		if(video.nframe < 665) continue;
 
         /*Segmentar o corpo*/
-		vc_hsv_resistances_segmentation(image_2,image_3,img_colors);
+		vc_hsv_resistances_segmentation(image_rgb,image_res_segmented,img_colors);
 
 		/*Limpar Ruido das imagens e dilatar*/
-        vc_binary_open(image_3,image_3,1,7);
+        vc_binary_open(image_res_segmented,image_res_segmented,1,7);
 
-		// damos open só pra imagens mais dificies?
-		/* vc_binary_open(img_colors->vermelho,img_colors->vermelho,1,3);
-		vc_binary_open(img_colors->verde,img_colors->verde,1,3);
-		vc_binary_open(img_colors->laranja,img_colors->laranja,1,3);
-		vc_binary_open(img_colors->preto,img_colors->preto,1,3); */
-
-		// Ver se podemos tirar depois
+		//Dilatar as cores
 		vc_binary_open(img_colors->azul,img_colors->azul,1,3);
 		vc_binary_open(img_colors->castanho,img_colors->castanho,1,3);
-		
+		vc_binary_open(img_colors->preto,img_colors->preto,1,3);		
 
 		int nlabel;
-		OVC *blobs = vc_binary_blob_labelling(image_3, image_6, &nlabel);
+		OVC *blobs = vc_binary_blob_labelling(image_res_segmented, image_res_blobs, &nlabel);
 		if(blobs != NULL)
-			vc_binary_blob_info(image_6, blobs, nlabel, 0, false);
+			vc_binary_blob_info(image_res_blobs, blobs, nlabel, 0, false);
 
 		ResistenceColorList ResColors;
 		for (int i = 0; i < nlabel; i++){
 			// filtrar apenas pelas resistências para o calculo dos ohms
-		 	if(blobs[i].area < 6000 || blobs[i].area > 10000){
+		 	if(blobs[i].area < 4000 || blobs[i].area > 10000){
+				continue;
+			}
+			
+			//Detetar a partir de uma certa linha
+			if(blobs[i].y <  100){
 				continue;
 			}
 
-			//ResColors = {0};
 			// check para verificar se há resitencias-- correr blob
 			bool resitence_check = vc_check_resistence_body(blobs[i].x, blobs[i].y ,blobs[i].width, blobs[i].height, img_colors->corpo);
 			if(resitence_check == true){
@@ -196,119 +194,41 @@ int main(void) {
 				swap_blobs(&blobsPrimeiraCor, &blobsSegundaCor);
 			}
 
-			/* cv::Mat imageToShow = cv::Mat(img_colors->vermelho->height, img_colors->vermelho->width, CV_8UC3);
-			for (int y = 0; y < img_colors->vermelho->height; y++) {
-				for (int x = 0; x < img_colors->vermelho->width; x++) {
-					uchar value3 = img_colors->vermelho->data[y * img_colors->vermelho->width + x] == 255 ? 255 : 0;
-					uchar value = 0;
-					uchar value2 = 0;
-
-					value2 = img_colors->verde->data[y * img_colors->vermelho->width + x] == 255 ? 255 : 0;
-					value = img_colors->azul->data[y * img_colors->vermelho->width + x] == 255 ? 255 : 0;
-
-					if(img_colors->castanho->data[y * img_colors->vermelho->width + x] == 255) {
-						value = 140;
-						value3 = 210;
-						value2 = 180;
-					}
-
-					else if(img_colors->preto->data[y * img_colors->vermelho->width + x] == 255) {
-						value = 211;
-						value3 = 211;
-						value2 = 211;
-					}
-
-					else if(img_colors->laranja->data[y * img_colors->vermelho->width + x] == 255) {
-						value = 0;
-						value3 = 255;
-						value2 = 165;
-					}
-					
-					imageToShow.at<cv::Vec3b>(y, x) = cv::Vec3b(value, value2, value3); // Replicar valor para os três canais
-				}
-			}
-			memcpy(frame2.data, imageToShow.data, video.width * video.height * 3); */
-			
-
-			/* int nlabelCores;
-			OVC *blobsCores[3]; // Array para armazenar os blobs de cada cor
-
-			for (int l = 0; l < 3; l++) {
-				IVC *imageBlobCor = vc_image_new(video.width, video.height, 1, 255);
-				blobsCores[l] = vc_binary_blob_labelling(cores[l].imagem, imageBlobCor, &nlabelCores);
-				
-				if (blobsCores[l] != NULL) {
-					vc_binary_blob_info(imageBlobCor, blobsCores[l], nlabelCores, true);
-				}
-			} */
-
-/* 			// Ordena as resistências pelo que está no vídeo ( esquerda para a direita )
-			for (int l = 0; l < 3; l++)
-			{
-				for (int k = l + 1; k < 3; k++)
-				{
-					if (blobsCores[l]->xc > blobsCores[k]->xc)
-					{
-						CorContagemImagem corTemp = cores[l];
-						OVC *blobTemp = blobsCores[l];
-						cores[l] = cores[k];
-						cores[k] = corTemp;
-						blobsCores[l] = blobsCores[k];
-						blobsCores[k] = blobTemp;
-					}
-				}
-			} */
-
-			/* // Encontra o pixel mais à esquerda de cada risca/cor da resistência
-			for (int y = blobs[i].y; y < blobs[i].y + blobs[i].height; y++) 
-			{
-				for (int x = blobs[i].x; x < blobs[i].x + blobs[i].width; x++) 
-				{
-					int pos = y * image_3->width + x;
-					if(cores[0].imagem->data[pos] == 255) {
-						if(x < cores[0].xmin) cores[0].xmin = x;
-					}
-					if(cores[1].imagem->data[pos] == 255) {
-						if(x < cores[1].xmin) cores[1].xmin = x;
-					}
-					if(cores[2].imagem->data[pos] == 255) {
-						if(x < cores[2].xmin ) cores[2].xmin = x;
-					}
-				}
-			} */
-
-/* 			if(video.nframe == 340) vc_write_image("../../castanho.pgm", img_colors->castanho);
-			if(video.nframe == 340) vc_write_image("../../vermelho.pgm", img_colors->vermelho); */
-
-/* 			// Ordena as resistências pelo que está no vídeo ( esquerda para a direita )
-			for (int l = 0; l < 3; l++)
-			{
-				for (int k = l + 1; k < 3; k++)
-				{
-					if (cores[l].xmin > cores[k].xmin)
-					{
-						CorContagemImagem temp = cores[l];
-						cores[l] = cores[k];
-						cores[k] = temp;
-					}
-				}
-			} */
-
 			char fullString[3];
 			fullString[0] = cores[0].digito;
 			fullString[1] = cores[1].digito;
 			fullString[2] = '\0';
 			int valor = atoi(fullString) * cores[2].multiplicador;
-			
+
+			/**/
+			if(blobs[i].y > 200 && blobs[i].y < 208 ){
+				bool resistencia_igual = false;
+				for(int i = 0;i < contadorResistencia.size();i++){
+					//se encontrar um registo para a mesma resistencia, adicionar 1 ao contador
+					if(contadorResistencia[i].valor == valor){
+						contadorResistencia[i].count += 1;
+						resistencia_igual = true;
+					}	
+				}
+				//Caso seja a primeira resistencia deste valor, comerçar contador 1
+				if (resistencia_igual == false){
+					contadorResistencia.push_back({valor,1});
+				}
+			}
+
 			str = std::to_string(valor) + "-Ohms";
-			int debug = 0;
-			if(debug) cv::imshow("VC - MASK", frame2);
-			//cv::putText(frame, str, cv::Point(blobs[i].x, blobs[i].y - 5), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 0, 0), 2);
-			cv::putText(frame, str, cv::Point(blobs[i].x, blobs[i].y - 5), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255, 0, 0), 2);
+			cv::putText(frame, str, cv::Point(blobs[i].x, blobs[i].y - 5), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0), 2);
+			cv::putText(frame, str, cv::Point(blobs[i].x, blobs[i].y - 5), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 0), 1);
+			str = "X: " + std::to_string(blobs[i].x);
+			cv::putText(frame, str, cv::Point(blobs[i].x, blobs[i].y + blobs[i].height + 15), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0), 2);
+			cv::putText(frame, str, cv::Point(blobs[i].x, blobs[i].y + blobs[i].height + 15), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 0), 1);
+			str = "Y: " + std::to_string(blobs[i].y);
+			cv::putText(frame, str, cv::Point(blobs[i].x, blobs[i].y + blobs[i].height + 30), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0), 2);
+			cv::putText(frame, str, cv::Point(blobs[i].x, blobs[i].y + blobs[i].height + 30), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 0), 1);
 
 			/*Bounding Box a usar openvc*/
-			cv::rectangle(frame, cv::Point(blobs[i].x, blobs[i].y), cv::Point(blobs[i].x + blobs[i].width, blobs[i].y + blobs[i].height ), cv::Scalar(255, 0, 0), 2);
-			cv::circle(frame, cv::Point(blobs[i].xc, blobs[i].yc), 1, cv::Scalar(255, 0, 0), 5);
+			cv::rectangle(frame, cv::Point(blobs[i].x, blobs[i].y), cv::Point(blobs[i].x + blobs[i].width, blobs[i].y + blobs[i].height ), cv::Scalar(255, 255, 0), 2);
+			cv::circle(frame, cv::Point(blobs[i].xc, blobs[i].yc), 1, cv::Scalar(255, 255, 0), 3);
 		}
 		
 		/*Quantidade de blobs detetados*/
@@ -334,17 +254,30 @@ int main(void) {
 
 		/* Exibe a frame */
 		cv::imshow("VC - VIDEO", frame);
-		//cv::imshow("VC - MASK", frame2);
 
 		/* Sai da aplica��o, se o utilizador premir a tecla 'q' */
 		key = cv::waitKey(1);
 	}
 
+	/*Cria o frame final a branco - 255 255 255*/
+	frameFinal = cv::Mat(video.height,video.width,CV_8UC3, cv::Scalar(255,255,255));
+	int pos_y = 0;
+	for(int i=0; i<contadorResistencia.size();i++){
+		str = std::to_string(contadorResistencia[i].count) + std::string(" RESISTENCIAS DE ") + std::to_string(contadorResistencia[i].valor) + std::string(" Ohms");
+		pos_y += 25;
+		cv::putText(frameFinal, str, cv::Point(20, pos_y), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 1);
+	}
+
+	/*Apresentar frame final com o resultado*/
+	cv::imshow("VC - VIDEO",frameFinal);
+	/*Primir tecla para sair*/
+	cv::waitKey(0);
+
+	/*Liberar toda a memoria allocada*/
     vc_image_free(image);
-	vc_image_free(image_2);
-	vc_image_free(image_3);
-	vc_image_free(image_4);
-	vc_image_free(image_6);
+	vc_image_free(image_rgb);
+	vc_image_free(image_res_segmented);
+	vc_image_free(image_res_blobs);
     
 	if (img_colors != NULL) {
         vc_free_images(img_colors);
@@ -357,7 +290,6 @@ int main(void) {
 
 	/* Fecha a janela */
 	cv::destroyWindow("VC - VIDEO");
-	//cv::destroyWindow("VC - MASK");
 
 	/* Fecha o ficheiro de v�deo */
 	capture.release();

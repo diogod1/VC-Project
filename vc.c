@@ -1499,7 +1499,8 @@ int vc_binary_blob_info(IVC *src, OVC *blobs, int nblobs, int areaRelevant, bool
 			}
 		}
 
-		if(blobs[i].area > areaRelevant) {
+		if (blobs[i].area > areaRelevant)
+		{
 			// Bounding Box
 			blobs[j].x = xmin;
 			blobs[j].y = ymin;
@@ -1514,7 +1515,8 @@ int vc_binary_blob_info(IVC *src, OVC *blobs, int nblobs, int areaRelevant, bool
 		}
 
 		// Se a área não for relevante
-		else if(!areaRelevant) {
+		else if (!areaRelevant)
+		{
 			// Bounding Box
 			blobs[i].x = xmin;
 			blobs[i].y = ymin;
@@ -1525,10 +1527,10 @@ int vc_binary_blob_info(IVC *src, OVC *blobs, int nblobs, int areaRelevant, bool
 			blobs[i].xc = sumx / MAX(blobs[i].area, 1);
 			blobs[i].yc = sumy / MAX(blobs[i].area, 1);
 		}
-		
 	}
 
-	if(bSortAreaDesc) {
+	if (bSortAreaDesc)
+	{
 		for (int l = 0; l < j; l++)
 		{
 			for (int k = l + 1; k < j; k++)
@@ -1540,9 +1542,9 @@ int vc_binary_blob_info(IVC *src, OVC *blobs, int nblobs, int areaRelevant, bool
 					blobs[k] = temp;
 				}
 			}
-		}	
+		}
 	}
-			
+
 	return 1;
 }
 
@@ -2063,7 +2065,7 @@ int vc_bgr_to_rgb(IVC *src, IVC *dst)
 	int width = src->width;
 	int height = src->height;
 	long int pos;
-	// Copiar a data da src para a dst
+
 	memcpy(datadst, datasrc, width * height * 3);
 
 	for (int y = 0; y < height; y++)
@@ -2072,8 +2074,8 @@ int vc_bgr_to_rgb(IVC *src, IVC *dst)
 		{
 			pos = y * bytesperline_src + x * channels_src;
 			unsigned char blue = datadst[pos];
-			datadst[pos] = datadst[pos + 2]; // Azul recebe o valor de Vermelho
-			datadst[pos + 2] = blue;		 // Vermelho recebe o valor de Azul
+			datadst[pos] = datadst[pos + 2];
+			datadst[pos + 2] = blue;
 		}
 	}
 
@@ -2092,7 +2094,7 @@ int vc_hsv_resistances_segmentation(IVC *src, IVC *dst, ImageColors *img_colors)
 		{1, 10, 65, 100, 80, 100},	  // Laranja
 		{20, 35, 50, 100, 50, 100},	  // Amarelo
 		{75, 165, 30, 100, 30, 100},  // Verde
-		{190, 220, 20, 100, 50, 100},	  // Azul
+		{170, 240, 20, 100, 30, 100}, // Azul
 		{220, 320, 30, 100, 30, 100}, // Roxo
 		{0, 360, 0, 10, 20, 80},	  // Cinza
 		{0, 360, 0, 0, 90, 100},	  // Branco
@@ -2279,23 +2281,30 @@ ResistenceColorList vc_check_resistence_color(int xpos, int ypos, int width, int
 	int nlabel;
 	ResistenceColorList ResColors = {0};
 
-	for (int y = ypos; y < ypos + height; y++) {
-		for (int x = xpos; x < xpos + width; x++) {
-			if(x > xpos && x < xpos + width && y > ypos && y < ypos + height) {
+	for (int y = ypos; y < ypos + height; y++)
+	{
+		for (int x = xpos; x < xpos + width; x++)
+		{
+			if (x > xpos && x < xpos + width && y > ypos && y < ypos + height)
+			{
 				int pos = y * videoWidth + x;
 
-				if(img_colors->laranja->data[pos] == 255) ResColors.lista_laranja++;
-				else if(img_colors->vermelho->data[pos] == 255) ResColors.lista_vermelho++;
-				else if(img_colors->azul->data[pos] == 255)  ResColors.lista_azul++;
-				else if(img_colors->verde->data[pos] == 255) ResColors.lista_verde++;
-				else if (img_colors->castanho->data[pos] == 255) ResColors.lista_castanho++;
-				else if (img_colors->preto->data[pos] == 255) ResColors.lista_preto++;
-				
-				//else if(img_colors->amarelo->data[pos] = 255) ResColors.lista_amarelo++;
+				if (img_colors->laranja->data[pos] == 255)
+					ResColors.lista_laranja++;
+				else if (img_colors->vermelho->data[pos] == 255)
+					ResColors.lista_vermelho++;
+				else if (img_colors->azul->data[pos] == 255)
+					ResColors.lista_azul++;
+				else if (img_colors->verde->data[pos] == 255)
+					ResColors.lista_verde++;
+				else if (img_colors->castanho->data[pos] == 255)
+					ResColors.lista_castanho++;
+				else if (img_colors->preto->data[pos] == 255)
+					ResColors.lista_preto++;
 			}
 		}
 	}
-	
+
 	return ResColors;
 }
 
@@ -2340,25 +2349,6 @@ void vc_free_images(ImageColors *img_colors)
 		vc_image_free(img_colors->branco);
 }
 
-/* void vc_memcpy_images_color(ImageColors *img_colors_src, ImageColors *img_colors_dst, int width, int height, int xpos, int ypos)
-{
-	// int pos;
-	// for (int y = height; y < height + ypos; y++)
-	// {
-	// 	for (int x = width; x < width + xpos; x++)
-	// 	{
-	// 		pos = y * img_colors_src->amarelo->bytesperline + x * img_colors_src->amarelo->channels;
-	// 		img_colors_dst->amarelo->data[pos] = img_colors_src->amarelo->data[pos];
-	// 		img_colors_dst->vermelho->data[pos] = img_colors_src->vermelho->data[pos];
-	// 		img_colors_dst->azul->data[pos] = img_colors_src->azul->data[pos];
-	// 		img_colors_dst->verde->data[pos] = img_colors_src->verde->data[pos];
-	// 		img_colors_dst->amarelo->data[pos] = img_colors_src->amarelo->data[pos];
-	// 		img_colors_dst->amarelo->data[pos] = img_colors_src->amarelo->data[pos];
-	// 		img_colors_dst->amarelo->data[pos] = img_colors_src->amarelo->data[pos];
-	// 	}
-	// }
-} */
-
 void calcularResistenciaTotal(CorContagemImagem *cores)
 {
 	IVC *image_temp;
@@ -2373,8 +2363,6 @@ void calcularResistenciaTotal(CorContagemImagem *cores)
 
 	for (int i = 0; i < 4; i++)
 	{
-		// std::string path = "../.." + std::to_string(i) + ".pgm";
-		// vc_write_image(const_cast<char*>(path.c_str()), cores[i].imagem->data);
 		vc_write_image("../../1.pgm", cores[i].imagem);
 		image_temp = vc_image_new(cores[i].imagem->width, cores[i].imagem->height, 1, 255);
 		OVC *blobs = vc_binary_blob_labelling(cores[i].imagem, image_temp, &nlabel);
@@ -2417,32 +2405,11 @@ void calcularResistenciaTotal(CorContagemImagem *cores)
 			}
 		}
 	}
-
-	/* IVC *image_temp = vc_image_new(cores[0].imagem->width, cores[0].imagem->height, 1, 255);
-
-	int nlabel;
-	OVC *blobs_0 = vc_binary_blob_labelling(cores[0].imagem->data, image_temp, &nlabel);
-	if(blobs_0 != NULL)
-		vc_binary_blob_info(image_temp, blobs_0, nlabel);
-
-	OVC *blobs_1 = vc_binary_blob_labelling(cores[1].imagem->data, image_temp, &nlabel);
-	if(blobs_1 != NULL)
-		vc_binary_blob_info(image_temp, blobs_1, nlabel);
-
-	OVC *blobs_2 = vc_binary_blob_labelling(cores[2].imagem->data, image_temp, &nlabel);
-	if(blobs_2 != NULL)
-		vc_binary_blob_info(image_temp, blobs_2, nlabel);
-
-	OVC *blobs_3 = vc_binary_blob_labelling(cores[3].imagem->data, image_temp, &nlabel);
-	if(blobs_3 != NULL)
-		vc_binary_blob_info(image_temp, blobs_3, nlabel);
- */
 }
-
 
 bool vc_check_resistence_body(int xpos, int ypos, int width, int height, IVC *image)
 {
-	bool result =  false;
+	bool result = false;
 	if (image->data != NULL)
 	{
 		IVC *image_blob = vc_image_new(image->width, image->height, 1, 255);
@@ -2453,32 +2420,36 @@ bool vc_check_resistence_body(int xpos, int ypos, int width, int height, IVC *im
 			vc_binary_blob_info(image_blob, blobs, nlabel, 0, false);
 		}
 
-		for(int i=0;i<nlabel;i++){
-			if(blobs[i].area < 200){
+		for (int i = 0; i < nlabel; i++)
+		{
+			if (blobs[i].area < 200)
+			{
 				continue;
 			}
-			if (blobs[i].xc > xpos && blobs[i].xc < xpos + width && blobs[i].yc > ypos && blobs[i].yc < ypos + height){
+			if (blobs[i].xc > xpos && blobs[i].xc < xpos + width && blobs[i].yc > ypos && blobs[i].yc < ypos + height)
+			{
 				result = true;
 			}
 		}
 
 		free(blobs);
 		vc_image_free(image_blob);
-		
 	}
 	return result;
 }
 
-void swap_cores(CorContagemImagem* cor1, CorContagemImagem* cor2) {
-    CorContagemImagem temp = *cor1;  // Usa uma variável temporária para armazenar o conteúdo de cor1
-    *cor1 = *cor2;                   // Copia o conteúdo de cor2 para onde cor1 aponta
-    *cor2 = temp;                    // Copia o conteúdo da variável temporária (original cor1) para onde cor2 aponta
+void swap_cores(CorContagemImagem *cor1, CorContagemImagem *cor2)
+{
+	CorContagemImagem temp = *cor1; // Usa uma variável temporária para armazenar o conteúdo de cor1
+	*cor1 = *cor2;					// Copia o conteúdo de cor2 para onde cor1 aponta
+	*cor2 = temp;					// Copia o conteúdo da variável temporária (original cor1) para onde cor2 aponta
 }
 
-void swap_blobs(OVC** blob1, OVC** blob2) {
-    OVC* temp = *blob1;
-    *blob1 = *blob2;
-    *blob2 = temp;
+void swap_blobs(OVC **blob1, OVC **blob2)
+{
+	OVC *temp = *blob1;
+	*blob1 = *blob2;
+	*blob2 = temp;
 }
 
 OVC *vc_binary_blob_labelling_custom(IVC *src, IVC *dst, int *nlabels, int xpos, int ypos, int blobWidth, int blobHeight)
@@ -2757,7 +2728,8 @@ int vc_binary_blob_info_custom(IVC *src, OVC *blobs, int nblobs, int areaRelevan
 			}
 		}
 
-		if(blobs[i].area > areaRelevant) {
+		if (blobs[i].area > areaRelevant)
+		{
 			// Bounding Box
 			blobs[j].x = xmin;
 			blobs[j].y = ymin;
@@ -2772,7 +2744,8 @@ int vc_binary_blob_info_custom(IVC *src, OVC *blobs, int nblobs, int areaRelevan
 		}
 
 		// Se a área não for relevante
-		else if(!areaRelevant) {
+		else if (!areaRelevant)
+		{
 			// Bounding Box
 			blobs[i].x = xmin;
 			blobs[i].y = ymin;
@@ -2784,6 +2757,6 @@ int vc_binary_blob_info_custom(IVC *src, OVC *blobs, int nblobs, int areaRelevan
 			blobs[i].yc = sumy / MAX(blobs[i].area, 1);
 		}
 	}
-			
+
 	return 1;
 }
