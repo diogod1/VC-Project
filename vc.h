@@ -152,12 +152,12 @@ int vc_gray_edge_sobel(IVC *src, IVC *dst, float th);
 int vc_gray_lowpass_mean_filter(IVC *src, IVC *dst, int kernelsize);
 int compare(const void *a, const void *b);
 int vc_gray_lowpass_median_filter(IVC *src, IVC *dst, int kernelsize);
-//***Novas funções
+
+// Novas funções
 int vc_bgr_to_rgb(IVC *src, IVC *dst);
-ResistenceColorList vc_check_resistence_color(int xpos, int ypos, int width, int height, ImageColors *img_colors, int videoWidth);
 void vc_initialize_colors(int width, int height, ImageColors *img_colors, int channels, int levels);
 void vc_free_images(ImageColors *img_colors);
-void calcularResistenciaTotal(CorContagemImagem *cores);
+ResistenceColorList vc_check_resistence_color(int xpos, int ypos, int width, int height, ImageColors *img_colors, int videoWidth);
 bool vc_check_resistence_body(int xpos, int ypos, int width, int height, IVC *image);
 void swap_cores(CorContagemImagem* cor1, CorContagemImagem* cor2);
 void swap_blobs(OVC** blob1, OVC** blob2);

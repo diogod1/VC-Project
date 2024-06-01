@@ -36,7 +36,7 @@ int main(void) {
 	
 	Video video;
 	std::string str;
-	int key = 0;
+	int key = 0, pos_y = 0;
 
 	capture.open(videofile);
 
@@ -90,15 +90,13 @@ int main(void) {
 		// Executa uma fun��o da nossa biblioteca vc
         vc_bgr_to_rgb(image,image_rgb);
 
-		if(video.nframe < 665) continue;
-
-        /*Segmentar o corpo*/
+        // Segmentar o corpo
 		vc_hsv_resistances_segmentation(image_rgb,image_res_segmented,img_colors);
 
-		/*Limpar Ruido das imagens e dilatar*/
+		// Limpar Ruido das imagens e dilatar
         vc_binary_open(image_res_segmented,image_res_segmented,1,7);
 
-		//Dilatar as cores
+		// Dilatar as cores
 		vc_binary_open(img_colors->azul,img_colors->azul,1,3);
 		vc_binary_open(img_colors->castanho,img_colors->castanho,1,3);
 		vc_binary_open(img_colors->preto,img_colors->preto,1,3);		
@@ -115,7 +113,7 @@ int main(void) {
 				continue;
 			}
 			
-			//Detetar a partir de uma certa linha
+			// Detetar a partir de uma certa linha
 			if(blobs[i].y <  100){
 				continue;
 			}
@@ -133,7 +131,7 @@ int main(void) {
 				{10,'1', ResColors.lista_castanho, img_colors->castanho, INT_MAX},
 				{100,'2', ResColors.lista_vermelho, img_colors->vermelho, INT_MAX},
 				{1000, '3', ResColors.lista_laranja, img_colors->laranja, INT_MAX},
-				//{ResColors.lista_amarelo, img_colors->amarelo, INT_MAX},
+				//{10000, '4', ResColors.lista_amarelo, img_colors->amarelo, INT_MAX},
 				{100000,'5', ResColors.lista_verde, img_colors->verde, INT_MAX},
 				{1000000,'6', ResColors.lista_azul, img_colors->azul, INT_MAX}
 			};
@@ -178,9 +176,10 @@ int main(void) {
 			if(blobsTerceiraCor != NULL)
 				vc_binary_blob_info_custom(imageBlobTerceiraCor, blobsTerceiraCor, nlabelCores, 190, blobs[i].x, blobs[i].y, blobs[i].width, blobs[i].height);
 
-			// não há blobs
+			// não há blobs para as três riscas da resistência
 			if(blobsPrimeiraCor == NULL || blobsSegundaCor == NULL || blobsTerceiraCor == NULL) continue;
 
+			// Ordenar as resistências consoante o centro de massa ( da esquerda para a direita )
 			if(blobsPrimeiraCor->xc > blobsSegundaCor->xc) {
 				swap_cores(&(cores[0]), &(cores[1]));
 				swap_blobs(&blobsPrimeiraCor, &blobsSegundaCor);
@@ -194,23 +193,24 @@ int main(void) {
 				swap_blobs(&blobsPrimeiraCor, &blobsSegundaCor);
 			}
 
+			// Cálculo do valor dos Ohms da resistência
 			char fullString[3];
 			fullString[0] = cores[0].digito;
 			fullString[1] = cores[1].digito;
 			fullString[2] = '\0';
 			int valor = atoi(fullString) * cores[2].multiplicador;
 
-			/**/
+			// Cálculo das resistências para apresentação no último frame
 			if(blobs[i].y > 200 && blobs[i].y < 208 ){
 				bool resistencia_igual = false;
 				for(int i = 0;i < contadorResistencia.size();i++){
-					//se encontrar um registo para a mesma resistencia, adicionar 1 ao contador
+					// Caso encontre um registo para a mesma resistência, adicionar 1 ao contador
 					if(contadorResistencia[i].valor == valor){
 						contadorResistencia[i].count += 1;
 						resistencia_igual = true;
 					}	
 				}
-				//Caso seja a primeira resistencia deste valor, comerçar contador 1
+				// Caso seja a primeira resistencia deste valor, comerçar contador 1
 				if (resistencia_igual == false){
 					contadorResistencia.push_back({valor,1});
 				}
@@ -226,15 +226,10 @@ int main(void) {
 			cv::putText(frame, str, cv::Point(blobs[i].x, blobs[i].y + blobs[i].height + 30), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0), 2);
 			cv::putText(frame, str, cv::Point(blobs[i].x, blobs[i].y + blobs[i].height + 30), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 0), 1);
 
-			/*Bounding Box a usar openvc*/
+			// Bounding Box a usar funções do OPENCV
 			cv::rectangle(frame, cv::Point(blobs[i].x, blobs[i].y), cv::Point(blobs[i].x + blobs[i].width, blobs[i].y + blobs[i].height ), cv::Scalar(255, 255, 0), 2);
 			cv::circle(frame, cv::Point(blobs[i].xc, blobs[i].yc), 1, cv::Scalar(255, 255, 0), 3);
 		}
-		
-		/*Quantidade de blobs detetados*/
-		// str = std::string("BLOB'S DETETADOS: ").append(std::to_string(nlabel));
-		// cv::putText(frame, str, cv::Point(20, 125), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 2);
-		// cv::putText(frame, str, cv::Point(20, 125), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 1);
 
 		str = std::string("RESOLUCAO: ").append(std::to_string(video.width)).append("x").append(std::to_string(video.height));
 		cv::putText(frame, str, cv::Point(20, 25), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 2);
@@ -244,7 +239,7 @@ int main(void) {
 		cv::putText(frame, str, cv::Point(20, 50), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 2);
 		cv::putText(frame, str, cv::Point(20, 50), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 1);
 
-		str = std::string("FRAME: ").append(std::to_string(video.nframe));
+		str = std::string("FRAME RATE: ").append(std::to_string(video.fps));
 		cv::putText(frame, str, cv::Point(20, 75), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 2);
 		cv::putText(frame, str, cv::Point(20, 75), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 1);
 
@@ -252,46 +247,49 @@ int main(void) {
 		cv::putText(frame, str, cv::Point(20, 100), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 2);
 		cv::putText(frame, str, cv::Point(20, 100), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 1);
 
-		/* Exibe a frame */
+		// Exibe a frame
 		cv::imshow("VC - VIDEO", frame);
 
-		/* Sai da aplica��o, se o utilizador premir a tecla 'q' */
+		// Sai da aplicação, se o utilizador premir a tecla 'q'
 		key = cv::waitKey(1);
 	}
 
-	/*Cria o frame final a branco - 255 255 255*/
+	// Cria o frame final a branco - 255 255 255
 	frameFinal = cv::Mat(video.height,video.width,CV_8UC3, cv::Scalar(255,255,255));
-	int pos_y = 0;
+	
+	// Apresentação final das resistências
 	for(int i=0; i<contadorResistencia.size();i++){
 		str = std::to_string(contadorResistencia[i].count) + std::string(" RESISTENCIAS DE ") + std::to_string(contadorResistencia[i].valor) + std::string(" Ohms");
 		pos_y += 25;
 		cv::putText(frameFinal, str, cv::Point(20, pos_y), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 1);
 	}
 
-	/*Apresentar frame final com o resultado*/
+	// Apresentar frame final com o resultado
 	cv::imshow("VC - VIDEO",frameFinal);
-	/*Primir tecla para sair*/
+	// Primir tecla para sair
 	cv::waitKey(0);
 
-	/*Liberar toda a memoria allocada*/
+	// Liberar toda a memoria allocada
     vc_image_free(image);
 	vc_image_free(image_rgb);
 	vc_image_free(image_res_segmented);
 	vc_image_free(image_res_blobs);
-    
+	vc_image_free(imageBlobPrimeiraCor);
+	vc_image_free(imageBlobSegundaCor);
+	vc_image_free(imageBlobTerceiraCor);
+
 	if (img_colors != NULL) {
         vc_free_images(img_colors);
         free(img_colors);
     }
-	// +++++++++++++++++++++++++
 
-	/* Para o timer e exibe o tempo decorrido */
+	// Para o timer e exibe o tempo decorrido
 	vc_timer();
 
-	/* Fecha a janela */
+	// Fecha a janela
 	cv::destroyWindow("VC - VIDEO");
 
-	/* Fecha o ficheiro de v�deo */
+	// Fecha o ficheiro de v�deo
 	capture.release();
 
 	return 0;

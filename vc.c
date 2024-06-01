@@ -2349,64 +2349,6 @@ void vc_free_images(ImageColors *img_colors)
 		vc_image_free(img_colors->branco);
 }
 
-void calcularResistenciaTotal(CorContagemImagem *cores)
-{
-	IVC *image_temp;
-	int nlabel;
-	int *minXs = malloc(4 * sizeof(int)); // Array para armazenar o valor mínimo de x para cada cor
-
-	if (minXs == NULL)
-	{
-		fprintf(stderr, "Falha na alocação de memória.\n");
-		return;
-	}
-
-	for (int i = 0; i < 4; i++)
-	{
-		vc_write_image("../../1.pgm", cores[i].imagem);
-		image_temp = vc_image_new(cores[i].imagem->width, cores[i].imagem->height, 1, 255);
-		OVC *blobs = vc_binary_blob_labelling(cores[i].imagem, image_temp, &nlabel);
-		if (blobs != NULL)
-			vc_binary_blob_info(image_temp, blobs, nlabel, 0, false);
-
-		minXs[i] = INT_MAX; // Inicializa com o maior valor possível
-
-		if (blobs != NULL)
-		{
-			for (int j = 0; j < nlabel; j++)
-			{
-				if (blobs[j].x < minXs[i])
-				{
-					minXs[i] = blobs[j].x; // Encontra o menor x para cada cor
-				}
-			}
-			free(blobs);
-		}
-		free(image_temp->data);
-		free(image_temp);
-	}
-
-	// Ordenação simples utilizando Bubble Sort para fins didáticos
-	for (int i = 0; i < 4 - 1; i++)
-	{
-		for (int j = 0; j < 4 - i - 1; j++)
-		{
-			if (minXs[j] > minXs[j + 1])
-			{
-				// Troca minXs
-				int temp = minXs[j];
-				minXs[j] = minXs[j + 1];
-				minXs[j + 1] = temp;
-
-				// Troca cores
-				CorContagemImagem tempCor = cores[j];
-				cores[j] = cores[j + 1];
-				cores[j + 1] = tempCor;
-			}
-		}
-	}
-}
-
 bool vc_check_resistence_body(int xpos, int ypos, int width, int height, IVC *image)
 {
 	bool result = false;
