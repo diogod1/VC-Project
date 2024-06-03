@@ -31,6 +31,7 @@ void vc_timer(void) {
 }
 
 int main(void) {
+	ResistenceColorList ResColors;
 	Video video;
 	std::string str;
 	std::vector<ContadorResistencia> contadorResistencia;
@@ -100,7 +101,6 @@ int main(void) {
 			// apenas retorna blobs com área maior que 6000 - filtrar pelas resistências com limite inferior
 			vc_binary_blob_info(image_res_blobs, blobs, nlabel, 6500);
 
-		ResistenceColorList ResColors;
 		for (int i = 0; i < nlabel; i++){
 			// filtrar pelas resistências com limite superior para o calculo dos ohms (no caso de condensadores por exemplo)
 		 	if(blobs[i].area > 10000) continue;
