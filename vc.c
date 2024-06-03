@@ -1433,7 +1433,7 @@ OVC *vc_binary_blob_labelling(IVC *src, IVC *dst, int *nlabels)
 	return blobs;
 }
 
-int vc_binary_blob_info(IVC *src, OVC *blobs, int nblobs, int areaRelevant, bool bSortAreaDesc)
+int vc_binary_blob_info(IVC *src, OVC *blobs, int nblobs, int areaRelevant)
 {
 	unsigned char *data = (unsigned char *)src->data;
 	int width = src->width;
@@ -1510,11 +1510,14 @@ int vc_binary_blob_info(IVC *src, OVC *blobs, int nblobs, int areaRelevant, bool
 			// Centro de Gravidade
 			blobs[j].xc = sumx / MAX(blobs[i].area, 1);
 			blobs[j].yc = sumy / MAX(blobs[i].area, 1);
+
+			blobs[j].area = blobs[i].area;
+			blobs[j].perimeter = blobs[i].perimeter;
 			j++;
 			continue;
 		}
 
-		// Se a área não for relevante
+		// Se a área não for relevante - 0
 		else if (!areaRelevant)
 		{
 			// Bounding Box
@@ -1526,22 +1529,6 @@ int vc_binary_blob_info(IVC *src, OVC *blobs, int nblobs, int areaRelevant, bool
 			// Centro de Gravidade
 			blobs[i].xc = sumx / MAX(blobs[i].area, 1);
 			blobs[i].yc = sumy / MAX(blobs[i].area, 1);
-		}
-	}
-
-	if (bSortAreaDesc)
-	{
-		for (int l = 0; l < j; l++)
-		{
-			for (int k = l + 1; k < j; k++)
-			{
-				if (blobs[l].area < blobs[k].area)
-				{
-					OVC temp = blobs[l];
-					blobs[l] = blobs[k];
-					blobs[k] = temp;
-				}
-			}
 		}
 	}
 
@@ -2086,18 +2073,20 @@ int vc_bgr_to_rgb(IVC *src, IVC *dst)
 // img_colors - estrutura com imagem de cada cor separadamente
 int vc_hsv_resistances_segmentation(IVC *src, IVC *dst, ImageColors *img_colors)
 {
-	ColorRange colors[11] = {
+	// CONF - cores(HSV)
+	ColorRange colors[12] = {
 		{30, 55, 35, 64, 45, 90},	  // Corpo resistência
 		{0, 360, 0, 35, 0, 35},		  // Preto
-		{12, 30, 20, 50, 20, 50},	  // Castanho
-		{340, 15, 50, 90, 50, 100},	  // Vermelho
-		{1, 10, 65, 100, 80, 100},	  // Laranja
+		{5, 30, 20, 50, 20, 50},	  // Castanho
+		{340, 15, 51, 90, 51, 100},	  // Vermelho
+		{12, 21, 65, 100, 78, 100},	  // Laranja
 		{20, 35, 50, 100, 50, 100},	  // Amarelo
 		{75, 165, 30, 100, 30, 100},  // Verde
 		{170, 240, 20, 100, 30, 100}, // Azul
 		{220, 320, 30, 100, 30, 100}, // Roxo
 		{0, 360, 0, 10, 20, 80},	  // Cinza
 		{0, 360, 0, 0, 90, 100},	  // Branco
+		{7, 12, 70, 100, 82, 100}	  // Laranja v2
 	};
 
 	unsigned char *datasrc = (unsigned char *)src->data;
@@ -2188,6 +2177,13 @@ int vc_hsv_resistances_segmentation(IVC *src, IVC *dst, ImageColors *img_colors)
 					 valor <= colors[4].maxValue / 100.0f * 255 && valor >= colors[4].minValue / 100.0f * 255)
 			{
 				datadst[pos_dst] = 255; // Laranja
+				img_colors->laranja->data[pos_dst] = 255;
+			}
+			else if (hue <= colors[11].maxHue && hue >= colors[11].minHue &&
+					 sat <= colors[11].maxSaturation && sat >= colors[11].minSaturation &&
+					 valor <= colors[11].maxValue / 100.0f * 255 && valor >= colors[11].minValue / 100.0f * 255)
+			{
+				datadst[pos_dst] = 255; // Laranja v2
 				img_colors->laranja->data[pos_dst] = 255;
 			}
 			else if (colors[3].minHue > colors[3].maxHue &&
@@ -2359,7 +2355,7 @@ bool vc_check_resistence_body(int xpos, int ypos, int width, int height, IVC *im
 		OVC *blobs = vc_binary_blob_labelling(image, image_blob, &nlabel);
 		if (blobs != NULL)
 		{
-			vc_binary_blob_info(image_blob, blobs, nlabel, 0, false);
+			vc_binary_blob_info(image_blob, blobs, nlabel, 0);
 		}
 
 		for (int i = 0; i < nlabel; i++)
@@ -2385,13 +2381,6 @@ void swap_cores(CorContagemImagem *cor1, CorContagemImagem *cor2)
 	CorContagemImagem temp = *cor1; // Usa uma variável temporária para armazenar o conteúdo de cor1
 	*cor1 = *cor2;					// Copia o conteúdo de cor2 para onde cor1 aponta
 	*cor2 = temp;					// Copia o conteúdo da variável temporária (original cor1) para onde cor2 aponta
-}
-
-void swap_blobs(OVC **blob1, OVC **blob2)
-{
-	OVC *temp = *blob1;
-	*blob1 = *blob2;
-	*blob2 = temp;
 }
 
 OVC *vc_binary_blob_labelling_custom(IVC *src, IVC *dst, int *nlabels, int xpos, int ypos, int blobWidth, int blobHeight)
@@ -2681,6 +2670,9 @@ int vc_binary_blob_info_custom(IVC *src, OVC *blobs, int nblobs, int areaRelevan
 			// Centro de Gravidade
 			blobs[j].xc = sumx / MAX(blobs[i].area, 1);
 			blobs[j].yc = sumy / MAX(blobs[i].area, 1);
+
+			blobs[j].area = blobs[i].area;
+			blobs[j].perimeter = blobs[i].perimeter;
 			j++;
 			continue;
 		}

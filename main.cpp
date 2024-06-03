@@ -31,13 +31,18 @@ void vc_timer(void) {
 }
 
 int main(void) {
-	char videofile[100] = "../../video_resistors.mp4";
-	cv::VideoCapture capture;
-	
+	CorContagemImagem temp;
 	Video video;
 	std::string str;
+	std::vector<ContadorResistencia> contadorResistencia;
+	cv::Mat frame;
+	cv::Mat frameFinal;
+	cv::VideoCapture capture;
+	int nlabel;
 	int key = 0, pos_y = 0;
+	char fullString[3];
 
+	char videofile[100] = "../../video_resistors.mp4";
 	capture.open(videofile);
 
 	if (!capture.isOpened())
@@ -70,11 +75,6 @@ int main(void) {
 	ImageColors *img_colors = (ImageColors *)malloc(sizeof(ImageColors));
 	vc_initialize_colors(video.width,video.height,img_colors,1,255);
 
-	//Inicializar o contador das resistencias
-	std::vector<ContadorResistencia> contadorResistencia;
-
-	cv::Mat frame;
-	cv::Mat frameFinal;
 	while (key != 'q') {
 		// Leitura de uma frame do vídeo
 		capture.read(frame);
@@ -90,53 +90,38 @@ int main(void) {
 		// Executa uma fun��o da nossa biblioteca vc
         vc_bgr_to_rgb(image,image_rgb);
 
-        // Segmentar o corpo
+        // Segmentar a resistência com as suas respetivas cores
 		vc_hsv_resistances_segmentation(image_rgb,image_res_segmented,img_colors);
 
-		// Limpar Ruido das imagens e dilatar
+		// Limpar pequenos ruidos e preencher falhas consideráveis na resistência
         vc_binary_open(image_res_segmented,image_res_segmented,1,7);
 
-		// Dilatar as cores
-		vc_binary_open(img_colors->azul,img_colors->azul,1,3);
-		vc_binary_open(img_colors->castanho,img_colors->castanho,1,3);
-		vc_binary_open(img_colors->preto,img_colors->preto,1,3);		
-
-		int nlabel;
 		OVC *blobs = vc_binary_blob_labelling(image_res_segmented, image_res_blobs, &nlabel);
 		if(blobs != NULL)
-			vc_binary_blob_info(image_res_blobs, blobs, nlabel, 0, false);
+			// apenas retorna blobs com área maior que 6000 - filtrar pelas resistências com limite inferior
+			vc_binary_blob_info(image_res_blobs, blobs, nlabel, 6500);
 
 		ResistenceColorList ResColors;
 		for (int i = 0; i < nlabel; i++){
-			// filtrar apenas pelas resistências para o calculo dos ohms
-		 	if(blobs[i].area < 4000 || blobs[i].area > 10000){
-				continue;
-			}
+			// filtrar pelas resistências com limite superior para o calculo dos ohms (no caso de condensadores por exemplo)
+		 	if(blobs[i].area > 10000) continue;
 			
 			// Detetar a partir de uma certa linha
-			if(blobs[i].y <  100){
-				continue;
-			}
+			if(blobs[i].y < 100) continue;
 
-			// check para verificar se há resitencias-- correr blob
-			bool resitence_check = vc_check_resistence_body(blobs[i].x, blobs[i].y ,blobs[i].width, blobs[i].height, img_colors->corpo);
-			if(resitence_check == true){
-				ResColors = vc_check_resistence_color(blobs[i].x, blobs[i].y ,blobs[i].width, blobs[i].height, img_colors, video.width);
-			}else{
-				continue;
-			}
+			//bool resitence_check = vc_check_resistence_body(blobs[i].x, blobs[i].y ,blobs[i].width, blobs[i].height, img_colors->corpo);
+			ResColors = vc_check_resistence_color(blobs[i].x, blobs[i].y ,blobs[i].width, blobs[i].height, img_colors, video.width);
 
+			// CONF - digitos e multiplicadores. contém também os contadores de cada cor e a sua respetiva imagem dentro do blob da resistência + c.massa
 			CorContagemImagem cores[] = {
 				{1,'0', ResColors.lista_preto, img_colors->preto, INT_MAX},
 				{10,'1', ResColors.lista_castanho, img_colors->castanho, INT_MAX},
 				{100,'2', ResColors.lista_vermelho, img_colors->vermelho, INT_MAX},
 				{1000, '3', ResColors.lista_laranja, img_colors->laranja, INT_MAX},
-				//{10000, '4', ResColors.lista_amarelo, img_colors->amarelo, INT_MAX},
 				{100000,'5', ResColors.lista_verde, img_colors->verde, INT_MAX},
 				{1000000,'6', ResColors.lista_azul, img_colors->azul, INT_MAX}
 			};
 
-			CorContagemImagem temp;
 			int n = sizeof(cores) / sizeof(cores[0]);
 			
 			// Ordenar as riscas/cores mais abundantes na resistência 
@@ -154,47 +139,41 @@ int main(void) {
 			}
 
 			// 2 cores iguais
-			if(cores[2].contagem < 200) {
+			if(cores[2].contagem < 140) {
 				cores[2] = cores[0];
 			}
 
 			// 3 cores iguais
-			if(cores[1].contagem < 200) {
+			if(cores[1].contagem < 140) {
 				cores[1] = cores[0];
 			}
 
 			int nlabelCores;
 			OVC *blobsPrimeiraCor = vc_binary_blob_labelling_custom(cores[0].imagem, imageBlobPrimeiraCor, &nlabelCores, blobs[i].x, blobs[i].y, blobs[i].width, blobs[i].height);
 			if(blobsPrimeiraCor != NULL)
-				vc_binary_blob_info_custom(imageBlobPrimeiraCor, blobsPrimeiraCor, nlabelCores, 190, blobs[i].x, blobs[i].y, blobs[i].width, blobs[i].height);
+				vc_binary_blob_info_custom(imageBlobPrimeiraCor, blobsPrimeiraCor, nlabelCores, 140, blobs[i].x, blobs[i].y, blobs[i].width, blobs[i].height);
 
 			OVC *blobsSegundaCor = vc_binary_blob_labelling_custom(cores[1].imagem, imageBlobSegundaCor, &nlabelCores, blobs[i].x, blobs[i].y, blobs[i].width, blobs[i].height);
 			if(blobsSegundaCor != NULL)
-				vc_binary_blob_info_custom(imageBlobSegundaCor, blobsSegundaCor, nlabelCores, 190, blobs[i].x, blobs[i].y, blobs[i].width, blobs[i].height);
+				vc_binary_blob_info_custom(imageBlobSegundaCor, blobsSegundaCor, nlabelCores, 140, blobs[i].x, blobs[i].y, blobs[i].width, blobs[i].height);
 
 			OVC *blobsTerceiraCor = vc_binary_blob_labelling_custom(cores[2].imagem, imageBlobTerceiraCor, &nlabelCores, blobs[i].x, blobs[i].y, blobs[i].width, blobs[i].height);
 			if(blobsTerceiraCor != NULL)
-				vc_binary_blob_info_custom(imageBlobTerceiraCor, blobsTerceiraCor, nlabelCores, 190, blobs[i].x, blobs[i].y, blobs[i].width, blobs[i].height);
+				vc_binary_blob_info_custom(imageBlobTerceiraCor, blobsTerceiraCor, nlabelCores, 140, blobs[i].x, blobs[i].y, blobs[i].width, blobs[i].height);
 
 			// não há blobs para as três riscas da resistência
 			if(blobsPrimeiraCor == NULL || blobsSegundaCor == NULL || blobsTerceiraCor == NULL) continue;
 
-			// Ordenar as resistências consoante o centro de massa ( da esquerda para a direita )
-			if(blobsPrimeiraCor->xc > blobsSegundaCor->xc) {
-				swap_cores(&(cores[0]), &(cores[1]));
-				swap_blobs(&blobsPrimeiraCor, &blobsSegundaCor);
-			} 
-			if(blobsSegundaCor->xc > blobsTerceiraCor->xc) {
-				swap_cores(&(cores[1]), &(cores[2]));
-				swap_blobs(&blobsSegundaCor, &blobsTerceiraCor);
-			} 
-			if(blobsPrimeiraCor->xc > blobsSegundaCor->xc) {
-				swap_cores(&(cores[0]), &(cores[1]));
-				swap_blobs(&blobsPrimeiraCor, &blobsSegundaCor);
-			}
+			cores[0].xc = blobsPrimeiraCor->xc;
+			cores[1].xc = blobsSegundaCor->xc;
+			cores[2].xc = blobsTerceiraCor->xc;
+
+			// Ordena as resistências consoante o centro de massa ( da esquerda para a direita )
+			if(cores[0].xc > cores[1].xc) swap_cores(&(cores[0]), &(cores[1]));
+			if(cores[1].xc > cores[2].xc) swap_cores(&(cores[1]), &(cores[2]));
+			if(cores[0].xc > cores[1].xc) swap_cores(&(cores[0]), &(cores[1]));
 
 			// Cálculo do valor dos Ohms da resistência
-			char fullString[3];
 			fullString[0] = cores[0].digito;
 			fullString[1] = cores[1].digito;
 			fullString[2] = '\0';
@@ -259,8 +238,8 @@ int main(void) {
 	
 	// Apresentação final das resistências
 	for(int i=0; i<contadorResistencia.size();i++){
-		str = std::to_string(contadorResistencia[i].count) + std::string(" RESISTENCIAS DE ") + std::to_string(contadorResistencia[i].valor) + std::string(" Ohms");
 		pos_y += 25;
+		str = std::to_string(contadorResistencia[i].count) + std::string(" RESISTENCIAS DE ") + std::to_string(contadorResistencia[i].valor) + std::string(" Ohms");
 		cv::putText(frameFinal, str, cv::Point(20, pos_y), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 0), 1);
 	}
 

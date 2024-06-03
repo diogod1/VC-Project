@@ -99,7 +99,7 @@ typedef struct {
     char digito;
     int contagem;
     IVC *imagem;
-    int xmin;
+    int xc;
 } CorContagemImagem;
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -130,7 +130,6 @@ int vc_rgb_get_blue_gray(IVC *srcdst);
 int vc_rgb_to_gray(IVC *src, IVC *dst);
 int vc_rgb_to_hsv(IVC *src, IVC *dst);
 int vc_hsv_segmentation(IVC *src, IVC *dst, int hmin, int hmax, int smin, int smax, int vmin, int vmax);
-int vc_hsv_resistances_segmentation(IVC *src, IVC *dst, ImageColors *img_colors);
 int vc_scale_gray_to_color_palette(IVC *src, IVC *dst);
 int vc_gray_to_binary(IVC *src, IVC *dst, int threshold);
 int vc_gray_to_binary_global_mean(IVC *src, IVC *dst);
@@ -141,7 +140,7 @@ int vc_binary_erode(IVC *src, IVC *dst, int kernel);
 int vc_binary_open(IVC *src, IVC *dst, int kernelErode, int kernelDilate);
 int vc_binary_close(IVC *src, IVC *dst, int kernelErode, int kernelDilate);
 OVC* vc_binary_blob_labelling(IVC *src, IVC *dst, int *nlabels);
-int vc_binary_blob_info(IVC *src, OVC *blobs, int nblobs, int areaRelevant, bool bSortAreaDesc);
+int vc_binary_blob_info(IVC *src, OVC *blobs, int nblobs, int areaRelevant);
 int vc_blob_to_gray_scale(IVC *src, IVC *dst, int nlabels);
 int vc_draw_center_of_gravity(IVC *img, OVC *blob, int comp);
 int vc_draw_bounding_box(IVC *img, OVC *blob);
@@ -157,9 +156,9 @@ int vc_gray_lowpass_median_filter(IVC *src, IVC *dst, int kernelsize);
 int vc_bgr_to_rgb(IVC *src, IVC *dst);
 void vc_initialize_colors(int width, int height, ImageColors *img_colors, int channels, int levels);
 void vc_free_images(ImageColors *img_colors);
+int vc_hsv_resistances_segmentation(IVC *src, IVC *dst, ImageColors *img_colors);
 ResistenceColorList vc_check_resistence_color(int xpos, int ypos, int width, int height, ImageColors *img_colors, int videoWidth);
 bool vc_check_resistence_body(int xpos, int ypos, int width, int height, IVC *image);
 void swap_cores(CorContagemImagem* cor1, CorContagemImagem* cor2);
-void swap_blobs(OVC** blob1, OVC** blob2);
 OVC *vc_binary_blob_labelling_custom(IVC *src, IVC *dst, int *nlabels, int xpos, int ypos, int blobWidth, int blobHeight);
 int vc_binary_blob_info_custom(IVC *src, OVC *blobs, int nblobs, int areaRelevant, int xpos, int ypos, int blobWidth, int blobHeight);
