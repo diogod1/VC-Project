@@ -98,7 +98,7 @@ int main(void) {
 
 		OVC *blobs = vc_binary_blob_labelling(image_res_segmented, image_res_blobs, &nlabel);
 		if(blobs != NULL)
-			// apenas retorna blobs com área maior que 6000 - filtrar pelas resistências com limite inferior
+			// apenas retorna blobs com área maior que 6500 - filtrar pelas resistências com limite inferior
 			vc_binary_blob_info(image_res_blobs, blobs, nlabel, 6500);
 
 		for (int i = 0; i < nlabel; i++){
