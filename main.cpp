@@ -31,7 +31,6 @@ void vc_timer(void) {
 }
 
 int main(void) {
-	CorContagemImagem temp;
 	Video video;
 	std::string str;
 	std::vector<ContadorResistencia> contadorResistencia;
@@ -125,18 +124,9 @@ int main(void) {
 			int n = sizeof(cores) / sizeof(cores[0]);
 			
 			// Ordenar as riscas/cores mais abundantes na resistência 
-			for (int x = 0; x < n; ++x) 
-			{
-				for (int y = x + 1; y < n; ++y) 
-				{
-					if (cores[x].contagem < cores[y].contagem) 
-					{
-						temp = cores[x];
-						cores[x] = cores[y];
-						cores[y] = temp;
-					}
-				}
-			}
+			for (int x = 0; x < n; ++x)
+				for (int y = x + 1; y < n; ++y)
+					if (cores[x].contagem < cores[y].contagem) swap_cores(&(cores[x]), &(cores[y]));
 
 			// 2 cores iguais
 			if(cores[2].contagem < 140) {
